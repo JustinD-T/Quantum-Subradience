@@ -1,0 +1,11 @@
+{
+    "instrument_address" : "s",
+    "visa_backend" : "@py",
+    "timeout" : 6e4,
+    "communication_codes" : {},
+    "default_communication_values" : {
+        "center_frequency" : 2.5e9,
+        "span" : 1e9,
+        "reference_level" : 0
+    }
+}
