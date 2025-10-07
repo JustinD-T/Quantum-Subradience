@@ -26,6 +26,39 @@ class VISAInterface():
         except Exception as e:
             print(f"Failed to connect to instrument at {self.address}: {e}")
 
+    ###########################################################
+    # Wrapper Utilization Functions
+    ###########################################################
+    
+    def setupGeneric(self, save_path):
+        # Set default values if they exist
+        default_center = self.communication_codes.get("defaultCenter", None)
+        default_span = self.communication_codes.get("defaultSpan", None)
+        default_ref_level = self.communication_codes.get("defaultRefLevel", None)
+
+        if default_center is not None:
+            self.setCenter(default_center)
+        if default_span is not None:
+            self.setSpan(default_span)
+        if default_ref_level is not None:
+            self.setReferenceLevel(default_ref_level)
+
+        # Prepare the instrument for data acquisition
+        init_code = self.communication_codes.get("init", None)
+        if init_code:
+            self.instrument.write(init_code)
+        else:
+            print('WARNING: No initialization communication code found.')
+
+        # Save path for data
+        self.save_path = save_path
+        print(f"Data will be saved to: {self.save_path}")
+
+
+    ###########################################################
+    # Interface Functions
+    ###########################################################
+
     def close(self):
         self.instrument.close()
         self.rm.close()
@@ -61,6 +94,7 @@ class VISAInterface():
 
 if __name__ == "__main__":
     import json
+    import time
 
     with open('setupParams.json', 'r') as f:
         setup_params = json.load(f)
@@ -70,5 +104,8 @@ if __name__ == "__main__":
     address = setup_params.get("instrument_address", 'GPIB0::18::INSTR')
     timeout = setup_params.get("timeout", 1e6)
     visa_backend = setup_params.get("visa_backend", '@py')
+    save_path = setup_params.get("save_path", f'./{time.strftime("%Y%m%d-%H%M%S")}_data.txt')
 
     visa_interface = VISAInterface(communication_codes, address, timeout, visa_backend)
+
+    visa_interface.setupGeneric(save_path)
