@@ -3,7 +3,7 @@
 import pyvisa
 
 # Initialize the VISA resource manager
-rm = pyvisa.ResourceManager('@py')
+rm = pyvisa.ResourceManager()
 
 # List all connected instruments (useful for finding the address)
 print("Connected instruments:")
