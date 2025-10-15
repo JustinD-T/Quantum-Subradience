@@ -5,4 +5,5 @@
     - pyvisa-py
     - psutil
     - zeroconf
-    - KeySight IO Agilent GPIB Library (externally installed)
+    - NI-488.2 GPIB library/driver (externally installed)
+    - Redis (linux)
