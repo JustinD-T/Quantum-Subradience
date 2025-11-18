@@ -1,0 +1,38 @@
+{
+    "serial": {
+        "port": "COM4",
+        "baudrate": 9600,
+        "bytesize": 8,
+        "parity": "N",
+        "stopbits": 1,
+        "timeout": 2
+    },
+    "protocol": {
+        "device_address": "001"
+    },
+    "commands": {
+        "read_value": {
+            "format": "{address}0{param_num}{data_len}{data}"
+        },
+        "set_value": {
+            "format": "{address}1{param_num}{data_len}{data}"
+        }
+    },
+    "parameters": {
+        "pressure": {
+            "number": "0740",
+            "response_type": "u_expo_new"
+        },
+        "unit": {
+            "number": "0643",
+            "response_type": "u_short_int",
+            "write_format": "{:03}",
+            "value_map": {
+                "mbar": "000",
+                "Torr": "001",
+                "hPa": "002"
+            }
+        }
+    }
+}
+
