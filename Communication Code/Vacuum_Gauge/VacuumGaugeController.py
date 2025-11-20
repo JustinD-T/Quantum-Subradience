@@ -176,3 +176,22 @@ class TPGController:
                 time.sleep(interval)
         except KeyboardInterrupt:
             print("\nStopping logger.")
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description="Control and monitor a Pfeiffer TPG 201 vacuum gauge with Redis logging.",
+        formatter_class=argparse.RawTextHelpFormatter
+    )
+    parser.add_argument('--config', default=r'Communication Code/Vacuum_Gauge/TPG_201_Config.json', help='Path to TPG config file.')
+    parser.add_argument('--redis-host', default='localhost', help='Redis server host.')
+    parser.add_argument('--redis-port', type=int, default=6379, help='Redis server port.')
+    parser.add_argument('--interval', type=float, default=1.0, help='Logging interval in seconds.')
+    parser.add_argument('--redis-key', default='tpg201_reading', help='Redis key to store the reading.')
+
+    args = parser.parse_args()
+
+    controller = TPGController(args.config)
+    if controller.connect():
+        redis_client = redis.Redis(host=args.redis_host, port=args.redis_port, decode_responses=True)
+        controller.start_logging_to_redis(redis_client, args.interval, args.redis_key)
+        controller.disconnect()

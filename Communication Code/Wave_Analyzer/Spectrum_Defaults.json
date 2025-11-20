@@ -1,5 +1,5 @@
 {
-    "instrument_address": "GPIB0::1::INSTR",
+    "instrument_address": "GPIB0::2::INSTR",
     "visa_backend": "",
     "timeout": 60000,
     "save_path": "wave_data/data.csv",

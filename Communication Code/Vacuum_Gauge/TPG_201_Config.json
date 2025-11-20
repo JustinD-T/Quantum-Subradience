@@ -1,21 +1,21 @@
 {
     "serial": {
-        "port": "COM4",
+        "port": "/dev/ttyUSB0",
         "baudrate": 9600,
         "bytesize": 8,
         "parity": "N",
         "stopbits": 1,
-        "timeout": 2
+        "timeout": 3
     },
     "protocol": {
         "device_address": "001"
     },
     "commands": {
         "read_value": {
-            "format": "{address}0{param_num}{data_len}{data}"
+            "format": "{address}00{param_num}{data_len}{data}"
         },
         "set_value": {
-            "format": "{address}1{param_num}{data_len}{data}"
+            "format": "{address}01{param_num}{data_len}{data}"
         }
     },
     "parameters": {
@@ -35,4 +35,3 @@
         }
     }
 }
-
