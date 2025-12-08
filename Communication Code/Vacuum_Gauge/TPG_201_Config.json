@@ -1,6 +1,6 @@
 {
     "serial": {
-        "port": "/dev/ttyUSB0",
+        "port": "COM3",
         "baudrate": 9600,
         "bytesize": 8,
         "parity": "N",
