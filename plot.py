@@ -50,14 +50,15 @@ def calculate_fit(df):
 # --- Main Script ---
 
 # Define input files and output path
-csv_paths = [Path("Recomp_NEW.csv"), Path("IsoRecomp_NEW.csv")] # Example file names
+csv_paths = [Path("Recomp_NEW.csv"), Path("IsoRecomp_NEW.csv"), Path('Recomp_OLD.csv')] # Example file names
+csv_titles = ['Full Chamber', 'Isolated Gauge', 'Full Chamber (Bad Valve)']
 out_path = Path("pressure_vs_time_comparison.png")
 deriv_out_path = Path("pressure_derivative_vs_time.png")
 
 # Prepare plot
 plt.figure(figsize=(6.5, 4))
-colors = ['C0', 'C1']
-line_styles = ['-', '--']
+colors = ['C0', 'C1', 'C2']
+line_styles = ['-', '--', '-.']
 
 # Process and plot each file
 all_dfs = []
@@ -71,13 +72,18 @@ for i, csv_path in enumerate(csv_paths):
     all_dfs.append(df)
 
     # Plot data
-    plt.plot(df["hours"], df["pressure"], marker="o", linestyle=line_styles[i], color=colors[i], label=f"Data: {csv_path.stem}")
+    plt.plot(df["hours"], df["pressure"], marker="o", linestyle=line_styles[i], color=colors[i], label=f"Data: {csv_titles[i]}", alpha=0.1)
+
+    # Add vertical line when pressure surpasses 0.1
+    above_threshold = df[df["pressure"] > 0.1]
+    if not above_threshold.empty:
+        plt.axvline(x=above_threshold["hours"].iloc[0], color=colors[i], linestyle='-', alpha=0.6)
 
     # Calculate and plot best fit line
     x_fit, y_fit, y_deriv = calculate_fit(df)
     fit_results.append({'x': x_fit, 'y_deriv': y_deriv, 'path': csv_path})
     if x_fit is not None:
-        plt.plot(x_fit, y_fit, color=colors[i], linestyle=':', label=f"Fit: {csv_path.stem}")
+        plt.plot(x_fit, y_fit, color=colors[i], linestyle=':', label=f"Fit: {csv_titles[i]}")
 
 # Configure and save the first plot
 if not all_dfs:
@@ -90,10 +96,10 @@ else:
 
     plt.legend()
     plt.xscale("linear")
-    plt.yscale("log")
+    plt.yscale("linear")
     plt.xlabel("Time since start (hours)")
     plt.ylabel(f"Pressure ({unit_str})")
-    plt.title("Pressure vs Time Comparison (linear-log scale)")
+    plt.title("Pressure vs Time Comparison (Recompression)")
     plt.grid(True, which="both", ls="--", alpha=0.6)
     plt.tight_layout()
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -102,13 +108,13 @@ else:
     plt.close()
 
     # --- Create and save the derivative plot ---
-    plt.figure(figsize=(6.5, 4))
+    plt.figure(figsize=(8, 4)) # Increased width to accommodate legend
     has_deriv_data = False
     STEADY_STATE_POINTS = 20 # Number of final points to average for steady state
 
     for i, result in enumerate(fit_results):
         if result['x'] is not None and result['y_deriv'] is not None:
-            plt.plot(result['x'], result['y_deriv'], color=colors[i], linestyle=':', label=f"Fit Derivative: {result['path'].stem}")
+            plt.plot(result['x'], result['y_deriv'], color=colors[i], linestyle=':', label=f"Fit Derivative: {csv_titles[i]}")
             has_deriv_data = True
 
             # Calculate and plot steady state of the derivative
@@ -120,14 +126,22 @@ else:
                 
                 # Plot horizontal line for steady state
                 plt.axhline(y=steady_state_value, color=colors[i], linestyle='--', 
-                            label=f"Steady State: {result['path'].stem} ({steady_state_value:.2e})")
+                            label=f"Steady State: {csv_titles[i]} \n ({steady_state_value:.2e}) (mbar/hour)")
+    
+    # Move legend to the side
+    ax = plt.gca()
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0, box.width * 1, box.height])
+
+    # Put a legend to the right of the current axis
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
 
     if has_deriv_data:
-        plt.legend()
+        # plt.legend()
         plt.xlabel("Time since start (hours)")
         plt.ylabel(f"Derivative of Pressure Fit (d/dt) [{unit_str}/hour]")
-        plt.title("Derivative of Pressure Fit vs. Time")
+        plt.title("Derivative of Pressure Fit vs. Time (Recompression)")
         plt.grid(True, which="both", ls="--", alpha=0.6)
         plt.tight_layout()
         plt.savefig(deriv_out_path, dpi=300)
