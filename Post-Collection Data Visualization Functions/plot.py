@@ -50,8 +50,8 @@ def calculate_fit(df):
 # --- Main Script ---
 
 # Define input files and output path
-csv_paths = [Path("Recomp_NEW.csv"), Path("IsoRecomp_NEW.csv"), Path('Recomp_OLD.csv')] # Example file names
-csv_titles = ['Full Chamber', 'Isolated Gauge', 'Full Chamber (Bad Valve)']
+csv_paths = [Path("ptfe_and_grease.csv"), Path("ptfe_only.csv"), Path("final_no_grease.csv")] # Example file names
+csv_titles = ['Grease', 'No Grease', 'Final No Grease']
 out_path = Path("pressure_vs_time_comparison.png")
 deriv_out_path = Path("pressure_derivative_vs_time.png")
 

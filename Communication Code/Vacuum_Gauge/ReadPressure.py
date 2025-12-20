@@ -207,12 +207,14 @@ if __name__ == '__main__':
     parser.add_argument('--csv-file', default='vacuum_log.csv', help='Path to the output CSV file.')
     parser.add_argument('--interval', type=float, default=1.0, help='Logging interval in seconds.')
 
+    csv_file = input('Name of run (csv file will be <name>.csv): ')
+
     args = parser.parse_args()
     
     try:
         controller = TPGController(args.config)
         if controller.connect():
-            controller.start_csv_logging(args.csv_file, args.interval)
+            controller.start_csv_logging(f"{csv_file}.csv", args.interval)
             controller.disconnect()
     except Exception as e:
         print(f"Initialization Error: {e}")
