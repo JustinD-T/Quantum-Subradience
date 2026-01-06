@@ -15,4 +15,4 @@
 ## Next Steps
 * Full change in setup
     * The following codes: Quick-Clamp High-Vacuum Fitting for 1" OD Aluminum Tube x Butt-Weld Tube, 1-9/16" Long (5786N24)
-    * 
+    * On/Off Valve with Ultra-High-Vacuum Fittings Valve Trade Number 25, for 1" Tube OD (4123K45)
