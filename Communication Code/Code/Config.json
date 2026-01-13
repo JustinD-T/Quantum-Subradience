@@ -42,28 +42,36 @@
         "visa": {
             "resource_string": "GPIB0::01::INSTR",
             "visa_backend": "",
-            "timeout": 60000,
-            "save_path": "wave_data/data.csv",
-            "center_frequency": 2500000000,
-            "span": 100000000,
-            "reference_level": 0
+            "timeout": 5000,
+            "center_frequency": 2.5e9,
+            "span": 1e8,
+            "reference_level": 0,
+            "power_unit" : "DBM",
+            "auto_sweep_time": 1,
+            "data_format": "REAL,32",
+            "byte_order": "SWAP"
         },
         "commands": {
             "identity_query": "*IDN?",
             "operation_complete_query": "*OPC?",
             "set_data_format": "FORM:DATA REAL,32",
             "set_byte_order": "FORM:BORD SWAP",
-            "set_center_frequency": ":FREQuency:CENTer {value}",
-            "set_reference_level": ":DISPlay:WINDow:TRACe:Y:RLEVel {value}",
-            "set_span": ":FREQuency:SPAN {value}",
-            "set_sweep_time": ":SWEep:TIME {value}",
-            "set_sweep_time_auto": ":SWEep:TIME:AUTO {value}",
-            "set_averaging_state": ":AVERage:STATe {value}",
-            "set_averaging_count": ":AVERage:COUNt {value}",
+            "set_power_unit" : ":UNIT:POWer value",
+            "set_center_frequency": ":FREQuency:CENTer value",
+            "set_reference_level": ":DISPlay:WINDow:TRACe:Y:RLEVel value",
+            "set_span": ":FREQuency:SPAN value",
+            "set_sweep_time": ":SWEep:TIME value",
+            "set_sweep_time_auto": ":SWEep:TIME:AUTO value",
+            "set_averaging_state": ":AVERage:STATe value",
+            "set_averaging_count": ":AVERage:COUNt value",
             "query_frequency_start": ":FREQuency:STARt?",
             "query_frequency_stop": ":FREQuency:STOP?",
             "query_sweep_points": ":SWEep:POINts?",
-            "query_trace_data": ":TRACe:DATA? TRACE1"
+            "query_trace_data": ":TRACe:DATA? TRACE1",
+            "query_reference_level": ":DISPlay:WINDow:TRACe:Y:RLEVel?",
+            "query_center_frequency": ":FREQuency:CENTer?",
+            "query_span": ":FREQuency:SPAN?",
+            "query_power_unit": ":UNIT:POWer?"
         }
     }
 }
