@@ -32,14 +32,14 @@ class CommunicationMaster():
                 print(f"ERROR: Failed to initialize Pressure Sensor (Continuing without it): {e}")
                 self.pressure_enabled = False
         
-        # if self.spectrum_enabled:
+        if self.spectrum_enabled:
 
-        #     # Try to connect
-        #     try:
-        #         self.spectrum_analyzer = SpectrumAnalyzer(self.config['spectrum_analyzer'], self.spectrum_callback)
-        #     except Exception as e:
-        #         print(f"ERROR: Failed to initialize Spectrum Analyzer (Continuing without it): {e}")
-        #         self.spectrum_enabled = False
+            # Try to connect
+            try:
+                self.spectrum_analyzer = SpectrumAnalyzer(self.config['spectrum_analyzer'], self.spectrum_callback)
+            except Exception as e:
+                print(f"ERROR: Failed to initialize Spectrum Analyzer (Continuing without it): {e}")
+                self.spectrum_enabled = False
 
         # Initialize logging on a concurrent thread for continous logging
         if self.logging_enabled:
@@ -55,20 +55,45 @@ class CommunicationMaster():
             with open(self.logging_path, mode='w', newline='') as log_file:
                 csv_writer = csv.writer(log_file)
                 self.fields = ['Timestamp', 'Elapsed Time (s)']
-                header = f"""
-# Experiment Log ({timestamp})
+
+                if self.pressure_enabled:
+                    #   Add pressure rows to csv
+                    self.fields.extend(['Pressure_Read_Time_Delta (ms)', 'Pressure', 'Pressure_Unit'])
+
+                if self.spectrum_enabled:
+                    self.fields.insert(2, 'Spectrum_Read_Time_Delta (ms)')
+                    spec_header_info = self.spectrum_analyzer.get_instrument_data()
+                    spectral_axis = self.spectrum_analyzer.get_spectral_axis()
+                    self.non_freq_fields = self.fields.copy()
+                    self.fields.extend([f"{freq} Hz" for freq in spectral_axis])
+                    
+                # Header info
+                header = f"""# Experiment Log ({timestamp})
 # Experiment Configuration:
 #    logging_enabled: {self.logging_enabled}
 #    spectrum_enabled: {self.spectrum_enabled}
 #    pressure_enabled: {self.pressure_enabled}
 #    visualization_enabled: {self.visualization_enabled}
-# Serial Configuration:
-#    Port: {config['pressure_sensor']['serial'].get('port', 'COM1')}
-#    Baudrate: {config['pressure_sensor']['serial'].get('baudrate', 9600)}
-#    Bytesize: {config['pressure_sensor']['serial'].get('bytesize', 8)}
-#    Parity: {config['pressure_sensor']['serial'].get('parity', 'N')}
-#    Stopbits: {config['pressure_sensor']['serial'].get('stopbits', 1)}
-#    Timeout: {config['pressure_sensor']['serial'].get('timeout', 3)}
+# Serial Configuration ({'ENABLED' if self.pressure_enabled else 'DISABLED'}):
+#    Port: {self.config['pressure_sensor']['serial'].get('port', 'COM1')}
+#    Baudrate: {self.config['pressure_sensor']['serial'].get('baudrate', 9600)}
+#    Bytesize: {self.config['pressure_sensor']['serial'].get('bytesize', 8)}
+#    Parity: {self.config['pressure_sensor']['serial'].get('parity', 'N')}
+#    Stopbits: {self.config['pressure_sensor']['serial'].get('stopbits', 1)}
+#    Timeout (ms): {float(self.config['pressure_sensor']['serial'].get('timeout', 3)) * 1000}
+# Spectrum Analyzer Configuration ({'ENABLED' if self.spectrum_enabled else 'DISABLED'}):
+#    Resource String: {self.config['spectrum_analyzer']['visa'].get('resource_string', 'N/A')}
+#    VISA Backend: {self.config['spectrum_analyzer']['visa'].get('visa_backend', 'None Specified')}
+#    Timeout (ms): {self.config['spectrum_analyzer']['visa'].get('timeout', 'N/A')}
+#    Data Format: {self.config['spectrum_analyzer']['visa'].get('data_format', 'N/A')}
+#    Byte Order: {self.config['spectrum_analyzer']['visa'].get('byte_order', 'N/A')}
+#    Number of Points: {spec_header_info.get('Number of Points', 'N/A')}
+#    Span: {spec_header_info.get('Span', 'N/A')}
+#    Frequency Start (Hz): {spec_header_info.get('Frequency Start (Hz)', 'N/A')}
+#    Frequency Stop (Hz): {spec_header_info.get('Frequency Stop (Hz)', 'N/A')}
+#    Center Frequency (Hz): {spec_header_info.get('Center Frequency (Hz)', 'N/A')}
+#    Reference Level (dBm): {spec_header_info.get('Reference Level (dBm)', 'N/A')}
+#    Power Unit: {spec_header_info.get('Power Unit', 'N/A')}
 # Data Columns:
 #    Timestamp: Time of the log entry in ISO 8601 format (measured at start of logging cycle)
 #    Elapsed Time (s): Time since the start of logging in seconds (measured at start of logging cycle)
@@ -77,15 +102,10 @@ class CommunicationMaster():
 #       Pressure_Unit: Unit of the pressure reading
 #       Pressure_Read_Time_Delta (ms): Delta between program read command and pressure sensor response time in miliseconds
 #    Spectrum Analyzer Readings (if enabled):
-                """
+#       Spectrum_Read_Time_Delta (ms): Delta between program read command and spectrum analyzer response time in miliseconds
+#       *amplitudes will be headed as their frequency value in Hz in subsequent columns*
+"""
 
-                if self.pressure_enabled:
-                    #   Add pressure rows to csv
-                    self.fields.extend(['Pressure_Read_Time_Delta (ms)', 'Pressure', 'Pressure_Unit'])
-
-                if self.spectrum_enabled:
-                    pass
-                
                 # Write header and rows to CSV file
                 log_lines = header.strip().split('\n')
                 for line in log_lines:
@@ -129,10 +149,19 @@ class CommunicationMaster():
                 })
 
             if self.spectrum_enabled:
-                pass
+                reading_start_time = time.time()
+                spectrum_data = self.spectrum_analyzer.get_amplitudes()
+                spectrum_time_delta = (spectrum_data['Timestamp'] - reading_start_time) * 1000  # Convert to milliseconds
+                data.update({
+                    'Spectrum_Read_Time_Delta (ms)': spectrum_time_delta,
+                })
             
             # Sort data to match header order
-            sorted_data = [data.get(field, '') for field in self.fields]
+            sorted_data = [data.get(field, '') for field in self.non_freq_fields]
+
+            # Append amplitude data if spectrum enabled
+            if self.spectrum_enabled:
+                sorted_data.extend(spectrum_data['Amplitudes'])
 
             # Append to CSV file
             with open(self.logging_path, mode='a', newline='') as log_file:

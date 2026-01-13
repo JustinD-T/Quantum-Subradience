@@ -3,7 +3,7 @@ import time
 
 class PressureSensor():
 
-    def __init__(self, config, data_callback):
+    def __init__(self, config, callback):
         """
         Initializes the PressureSensor with serial communication settings.
         """
@@ -12,7 +12,7 @@ class PressureSensor():
         self.address = self.config['serial'].get('address', '001')
         self.terminator = self.config['serial'].get('terminator', '\r')
         self.unit_name_map = {v: k for k, v in self.config['parameters']['unit']['value_map'].items()}
-        self.log_callback = data_callback
+        self.log_callback = callback
 
         # Initializes the serial connection
         try:
