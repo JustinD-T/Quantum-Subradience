@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 from PressureSensor import PressureSensor
 from SpectrumAnalyzer import SpectrumAnalyzer
 
@@ -14,6 +15,7 @@ class CommunicationMaster():
         self.config = config
         self.logging_path = os.path.join(os.path.curdir, 'ExperimentLogs') if args.logp is None else args.logp
         self.interval = config['program'].get('reading_interval', 1.0)
+        self.stop_event = threading.Event()
 
         # Store configuration and arguments
         self.logging_enabled = not args.nolog
@@ -21,6 +23,10 @@ class CommunicationMaster():
         self.pressure_enabled = not args.nopressure
         self.visualization_enabled = not args.novisual
         self.verbose = args.verbose
+
+        # Setup reading threads
+        n_workers = 2 if self.pressure_enabled and self.spectrum_enabled else 1
+        self.executor = ThreadPoolExecutor(max_workers=n_workers)
 
         # Initialize Pressure Sensor if enabled
         if self.pressure_enabled:
@@ -59,6 +65,7 @@ class CommunicationMaster():
                 if self.pressure_enabled:
                     #   Add pressure rows to csv
                     self.fields.extend(['Pressure_Read_Time_Delta (ms)', 'Pressure', 'Pressure_Unit'])
+                    spec_header_info = {} # Dummy to avoid undefined error below
 
                 if self.spectrum_enabled:
                     self.fields.insert(2, 'Spectrum_Read_Time_Delta (ms)')
@@ -88,6 +95,7 @@ class CommunicationMaster():
 #    Data Format: {self.config['spectrum_analyzer']['visa'].get('data_format', 'N/A')}
 #    Byte Order: {self.config['spectrum_analyzer']['visa'].get('byte_order', 'N/A')}
 #    Number of Points: {spec_header_info.get('Number of Points', 'N/A')}
+#    Sweep Time (ms): {spec_header_info.get('Sweep Time (ms)', 'N/A')}
 #    Span: {spec_header_info.get('Span', 'N/A')}
 #    Frequency Start (Hz): {spec_header_info.get('Frequency Start (Hz)', 'N/A')}
 #    Frequency Stop (Hz): {spec_header_info.get('Frequency Stop (Hz)', 'N/A')}
@@ -100,10 +108,10 @@ class CommunicationMaster():
 #    Pressure Sensor Readings (if enabled):
 #       Pressure: Pressure reading from the sensor in specified units
 #       Pressure_Unit: Unit of the pressure reading
-#       Pressure_Read_Time_Delta (ms): Delta between program read command and pressure sensor response time in miliseconds
+#       Pressure_Read_Time_Delta (ms): Time delta between program read command and write time in miliseconds (i.e. time lost by communication/writing, inclusive of internal measurement time)
 #    Spectrum Analyzer Readings (if enabled):
-#       Spectrum_Read_Time_Delta (ms): Delta between program read command and spectrum analyzer response time in miliseconds
-#       *amplitudes will be headed as their frequency value in Hz in subsequent columns*
+#       Spectrum_Read_Time_Delta (ms): Time delta between program read command and write time in miliseconds (i.e. time lost by communication/writing, inclusive of internal measurement time)
+#       *amplitudes will be headed as their frequency value in Hz in subsequent columns (eg. 2450000000.0 Hz)*
 """
 
                 # Write header and rows to CSV file
@@ -125,53 +133,99 @@ class CommunicationMaster():
         print("Logging stopped.")
 
     def start_logging(self, interval):
-        start_time  = time.time()
-        print(f"Logging started. Writing to {self.logging_path}")
-        while self.logging_active:
-            
-            # Get Timestamp
-            current_time = time.time()
-            timestamp = time.strftime('%Y-%m-%dT%H:%M:%S', time.localtime(current_time))
-            elapsed_time = current_time - start_time
+            start_time = time.time()
+            cycle_ct = 0
+            self.master_callback("message", f"Logging started. Writing to {self.logging_path}")
+            curr_mem = os.path.getsize(self.logging_path)
+            try:
+                # Keep CSV file open for the duration of the logging session
+                with open(self.logging_path, mode='a', newline='') as log_file:
+                    csv_writer = csv.writer(log_file)
 
-            # Prep data columns
-            data = {'Timestamp': timestamp, 'Elapsed Time (s)': elapsed_time}
+                    while self.logging_active:
+                        current_loop_start = time.time()
+                        timestamp = time.strftime('%Y-%m-%dT%H:%M:%S', time.localtime(current_loop_start))
+                        elapsed_time = current_loop_start - start_time
 
-            # Get Pressure Sensor Data
-            if self.pressure_enabled:
-                reading_start_time = time.time()
-                pressure_sensor_reading = self.pressure_sensor.get_reading()
-                pressure_time_delta = (pressure_sensor_reading['timestamp'] - reading_start_time) * 1000  # Convert to milliseconds
-                data.update({
-                    'Pressure': pressure_sensor_reading['pressure'],
-                    'Pressure_Unit': pressure_sensor_reading['unit'],
-                    'Pressure_Read_Time_Delta (ms)': pressure_time_delta
-                })
+                        data = {'Timestamp': timestamp, 'Elapsed Time (s)': elapsed_time}
+                        
+                        # 1. Concurrent Hardware Read
+                        reading_trigger_time = time.time()
+                        try:
+                            futures = {}
+                            if self.pressure_enabled:
+                                futures['p'] = self.executor.submit(self.pressure_sensor.get_reading)
+                            if self.spectrum_enabled:
+                                futures['s'] = self.executor.submit(self.spectrum_analyzer.get_amplitudes)
+                            
+                            # Wait for results
+                            p_res = futures['p'].result() if 'p' in futures else None
+                            s_res = futures['s'].result() if 's' in futures else None
+                        except (RuntimeError, KeyError):
+                            # Triggered if executor is shutting down
+                            break
 
-            if self.spectrum_enabled:
-                reading_start_time = time.time()
-                spectrum_data = self.spectrum_analyzer.get_amplitudes()
-                spectrum_time_delta = (spectrum_data['Timestamp'] - reading_start_time) * 1000  # Convert to milliseconds
-                data.update({
-                    'Spectrum_Read_Time_Delta (ms)': spectrum_time_delta,
-                })
-            
-            # Sort data to match header order
-            sorted_data = [data.get(field, '') for field in self.non_freq_fields]
+                        # 2. Process Pressure Data
+                        if p_res:
+                            p_delta = (p_res['timestamp'] - reading_trigger_time) * 1000
+                            data.update({
+                                'Pressure': p_res['pressure'],
+                                'Pressure_Unit': p_res['unit'],
+                                'Pressure_Read_Time_Delta (ms)': p_delta
+                            })
+                        else:
+                            p_delta = 0
 
-            # Append amplitude data if spectrum enabled
-            if self.spectrum_enabled:
-                sorted_data.extend(spectrum_data['Amplitudes'])
+                        # 3. Process Spectrum Data
+                        if s_res:
+                            s_delta = (s_res['Timestamp'] - reading_trigger_time) * 1000
+                            data.update({
+                                'Spectrum_Read_Time_Delta (ms)': s_delta,
+                            })
+                        else:
+                            s_delta = 0
 
-            # Append to CSV file
-            with open(self.logging_path, mode='a', newline='') as log_file:
-                csv_writer = csv.writer(log_file)
-                csv_writer.writerow(sorted_data)
+                        # 4. Prepare and Write CSV Row
+                        sorted_data = [data.get(field, '') for field in self.non_freq_fields]
+                        if s_res:
+                            sorted_data.extend(s_res['Amplitudes'])
 
-            if self.verbose:
-                print(f"[Logging] Logged data at {timestamp}")
-            time.sleep(interval)    
-                
+                        csv_writer.writerow(sorted_data)
+
+                        # Update current memory usage
+                        curr_mem += len(",".join(map(str, sorted_data)).encode('utf-8'))
+
+                        # Safety: Flush to OS every loop, Sync to Physical Disk every 50
+                        log_file.flush()
+                        if cycle_ct % 50 == 0:
+                            os.fsync(log_file.fileno())
+                            curr_mem = os.fstat(log_file.fileno()).st_size
+                            
+
+                        # 5. Timing Calculations
+                        loop_end_time = time.time()
+                        
+                        # hw_wait is the duration of the slowest instrument response
+                        hw_wait = max(p_delta, s_delta) / 1000.0
+                        # systematic_time is the overhead of Python/Writing/Formatting
+                        systematic_time = (loop_end_time - current_loop_start) - hw_wait
+                        
+                        if not self.visualization_enabled:
+                            print(f"[Cycle {cycle_ct}] HW Wait: {hw_wait*1000:.1f}ms | Overhead: {systematic_time*1000:.1f}ms | Total Est. Memory: {curr_mem / (1000**3):.8f}Gb ; {(curr_mem / (1000**3)) / ((loop_end_time - start_time) / 3600):.4f}Gb/hr | Measurement Cadence: {cycle_ct / (loop_end_time - start_time):.4f} Hz")
+
+                        cycle_ct += 1
+
+                        # 6. Intelligent Sleep (Subtracts work time from interval)
+                        work_duration = time.time() - current_loop_start
+                        sleep_time = max(0, interval - work_duration)
+                        if sleep_time > 0:
+                            time.sleep(sleep_time)
+
+            except Exception as e:
+                self.master_callback("error", f"Fatal error in logging loop: {e}")
+            finally:
+                self.logging_active = False
+                self.executor.shutdown(wait=False)
 
     def pressure_callback(self, log_type, message):
         if log_type == "message" and self.verbose:
@@ -184,6 +238,12 @@ class CommunicationMaster():
             print(f"[Spectrum Analyzer] {message}")
         elif log_type == 'error':
             print(f"[Spectrum Analyzer ERROR] {message}")
+    
+    def master_callback(self, log_type, message):
+        if log_type == "message" and self.verbose:
+            print(f"[Master] {message}")
+        elif log_type == 'error':
+            print(f"[Master ERROR] {message}")
 
 def load_config(config_path):
     """Loads configuration from a JSON file."""
@@ -201,8 +261,10 @@ if __name__ == "__main__":
     parser.add_argument('--nolog', default=False, action='store_true', help='Disable logging')
     parser.add_argument('--nospectrum', default=False, action='store_true', help='Disable spectrum analyzer reading')
     parser.add_argument('--nopressure', default=False, action='store_true', help='Disable pressure sensor reading')
-    parser.add_argument('--novisual', default=False, action='store_true', help='Disable visualization module')
+    parser.add_argument('--novisual', default=True, action='store_true', help='Disable visualization module')
     parser.add_argument('--verbose', default=False, action='store_true', help='Enable verbose logging output')
+    # NOT IMPLEMENTED
+    # parser.add_argument('--maxcadence', default=False, action='store_true', help='Enable logging at the speed of the fastest cadence measurement device')
 
     args = parser.parse_args()
 
@@ -212,7 +274,11 @@ if __name__ == "__main__":
         print(f"FATAL ERROR: Failed to load configuration file: {e}")
         exit(1)
 
-    CommunicationMaster(config, args)
-
-    # Initialize master with proper configuration
+    master = CommunicationMaster(config, args)
+    try:
+        master.stop_event.wait()
+    except KeyboardInterrupt:
+        print("\nUser interrupted. Shutting down...")
+        master.stop_logging()
+        master.stop_event.set()
 
