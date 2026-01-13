@@ -30,8 +30,8 @@ class SpectrumAnalyzer():
         
         # Set data format
         try:
-            self.instrument.write(self.commands['set_data_format'])
-            self.instrument.write(self.commands['set_byte_order'])
+            self.instrument.write(self.commands['set_data_format'].replace('value', config['visa'].get('data_format', 'REAL, 32')))
+            self.instrument.write(self.commands['set_byte_order'].replace('value', config['visa'].get('byte_order', 'SWAP')))
         except Exception as e:
             self.log('error', f"Error configuring Spectrum Analyzer byte/data format: {e}")
 
@@ -63,13 +63,67 @@ class SpectrumAnalyzer():
         except Exception as e:
             self.log('error', f"Error setting power unit: {e}")
 
-        # Set sweep time to auto
+        # Set number of points
         try:
-            auto_sweep_time = config['visa'].get('auto_sweep_time', 1)
-            self.instrument.write(self.commands['set_sweep_time_auto'].replace('value', str(auto_sweep_time)))
+            num_points = config['visa'].get('num_points', 401)
+            self.instrument.write(self.commands['set_num_points'].replace('value', str(num_points)))
         except Exception as e:
-            self.log('error', f"Error setting sweep time to auto: {e}")
+            self.log('error', f"Error setting number of points: {e}")
+
+        # Check both auto sweep and specified time are provided
+        if int(config['visa'].get('auto_sweep_time', 'N/A')) != 0 and config['visa'].get('sweep_time', None) is not None:
+            self.log('error', f'MAJOR ERROR: auto_sweep_time is True while sweep_time is specified! Continuing specified sweep time.')
         
+        # Set auto sweep time first 
+        try:
+            auto_sweep_time = config['visa'].get('auto_sweep_time', 0)
+            self.instrument.write(self.commands['set_sweep_time_auto'].replace('value', str(auto_sweep_time)))
+            self.auto_sweep = True
+        except Exception as e:
+            self.log('error', f"Error setting auto_sweep_time to {auto_sweep_time}: {e}")
+
+        # if auto_sweep_time is not true, set specified time
+        if config['visa'].get('auto_sweep_time', 0) != 1:
+            try:
+                sweep_time = config['visa'].get('sweep_time', 100) / 1000 #Convert to ms
+                self.instrument.write(self.commands['set_sweep_time'].replace('value', str(sweep_time)))
+                self.auto_sweep = False
+            except Exception as e:
+                self.log('error', f'Error setting sweep_time to {sweep_time}: {e}')
+            
+        # Set sweep mode 
+        try:
+            sweep_mode = config['visa'].get('single_sweep_mode', 'OFF')
+            self.instrument.write(self.commands['set_sweep_mode'].replace('value', sweep_mode))
+        except Exception as e:
+            self.log('error', f"Error setting singe_sweep_mode to {sweep_mode}: {e}")
+
+        # Set Display mode
+        try:
+            display_on = config['visa'].get('display_on', 'ON')
+            self.instrument.write(self.commands['set_display_on'].replace('value', display_on))
+        except Exception as e:
+            self.log('error', f"Error setting display_on to {display_on}: {e}")
+        
+        # Set detector mode
+        try:
+            detector_mode = config['visa'].get('detector_mode', 'AVER')
+            self.instrument.write(self.commands['set_detector_mode'].replace('value', detector_mode))
+        except Exception as e:
+            self.log('error', f"Error setting detector_mode to {detector_mode}: {e}")
+        
+        # Initiate a sweep to apply settings
+        try:
+            self.instrument.write(self.commands['initiate_sweep'])
+            self.instrument.query(self.commands['operation_complete_query'])
+            self.instrument.query_binary_values(
+                self.commands['query_trace_data'], 
+                datatype='f', 
+                is_big_endian=False
+            )
+        except Exception as e:
+            self.log('error', f"Error initiating first sweep: {e}")
+
         # Determine point frequencies
         try:
             self.start_freq =self.instrument.query(self.commands['query_frequency_start'])
@@ -87,6 +141,12 @@ class SpectrumAnalyzer():
 
     def get_amplitudes(self):
         
+        # Initiate a new sweep
+        self.instrument.write(self.commands['initiate_sweep'])
+
+        # Wait for operation to complete
+        self.instrument.query(self.commands['operation_complete_query'])
+
         # Query trace data
         amplitudes = self.instrument.query_binary_values(
             self.commands['query_trace_data'], 
@@ -101,13 +161,17 @@ class SpectrumAnalyzer():
         return {"N_pts" : len(amplitudes), "Amplitudes" : amplitudes, "Timestamp" : write_time}
 
     def get_instrument_data(self):
-        N_points = self.instrument.query(self.commands['query_sweep_points'])
-        freq_stop = self.instrument.query(self.commands['query_frequency_stop'])
-        freq_start = self.instrument.query(self.commands['query_frequency_start'])
-        center_freq = self.instrument.query(self.commands['query_center_frequency'])
-        ref_level = self.instrument.query(self.commands['query_reference_level'])
-        power_unit = self.instrument.query(self.commands['query_power_unit'])
-        span = self.instrument.query(self.commands['query_span'])
+        N_points = self.instrument.query(self.commands['query_sweep_points']).strip()
+        freq_stop = self.instrument.query(self.commands['query_frequency_stop']).strip()
+        freq_start = self.instrument.query(self.commands['query_frequency_start']).strip()
+        center_freq = self.instrument.query(self.commands['query_center_frequency']).strip()
+        ref_level = self.instrument.query(self.commands['query_reference_level']).strip()
+        power_unit = self.instrument.query(self.commands['query_power_unit']).strip()
+        span = self.instrument.query(self.commands['query_span']).strip()
+        if self.auto_sweep is True:
+            sweep_time = 'Auto'
+        else:
+            sweep_time = self.instrument.query(self.commands['query_sweep_time']).strip()
         return {
             "Number of Points": N_points,
             "Span": span,
@@ -115,7 +179,8 @@ class SpectrumAnalyzer():
             "Frequency Stop (Hz)": freq_stop,
             "Center Frequency (Hz)": center_freq,
             "Reference Level (dBm)": ref_level,
-            "Power Unit": power_unit
+            "Power Unit": power_unit,
+            "Sweep Time (ms)" : sweep_time
         }
 
     def get_spectral_axis(self):

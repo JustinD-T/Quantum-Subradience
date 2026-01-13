@@ -32,8 +32,10 @@ class PressureSensor():
     def connect(self):
         """ Attempts to open the serial port """
         try:
-            self.ser.open()
-            time.sleep(0.1) 
+            self.ser.open() 
+            time.sleep(0.1)
+            unit_code_raw = self.read_value('unit')
+            self.unit_name = self.unit_name_map.get(f"{unit_code_raw:03d}", "Unknown") 
             self.log('message', f'Pressure Sensor Successfully Initialized at {self.ser.port}') 
         except serial.SerialException as e:
             raise ConnectionError(f"Failed to open serial port: {e}")
@@ -60,8 +62,9 @@ class PressureSensor():
             self.log("error", "Serial port is not open.")
             return None
         try:
-            self.ser.flushInput()
-            self.ser.flushOutput()
+            # DISABLED FOR COMMUNICATION EFFECIENTCY
+            # self.ser.flushInput()
+            # self.ser.flushOutput()
             
             command_bytes = full_command.encode('ascii')
             self.ser.write(command_bytes)
@@ -133,21 +136,21 @@ class PressureSensor():
         """Gets a complete reading (pressure and unit) from the gauge."""
         pressure_raw = self.read_value('pressure')
         
-        # Small delay to allow gauge buffer to clear between commands
-        time.sleep(0.05) 
+        # DISABLED FOR EFFECIENTCY
+        # # Small delay to allow gauge buffer to clear between commands
+        # time.sleep(0.05) 
         
-        unit_code_raw = self.read_value('unit')
         
-        if pressure_raw is None or unit_code_raw is None:
+        
+        if pressure_raw is None:
             return None
         
-        unit_name = self.unit_name_map.get(f"{unit_code_raw:03d}", "Unknown")
         
         current_time = time.time()
 
         return {
             "pressure": pressure_raw,
-            "unit": unit_name,
+            "unit": self.unit_name,
             "timestamp": current_time
         }
 
