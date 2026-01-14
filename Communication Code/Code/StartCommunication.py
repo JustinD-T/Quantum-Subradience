@@ -19,6 +19,7 @@ class CommunicationMaster():
         self.logging_path = os.path.join(os.path.curdir, 'ExperimentLogs') if args.logp is None else args.logp
         self.interval = config['program'].get('reading_interval', 1.0)
         self.stop_event = threading.Event()
+        self.vis_update_cadence = config['program'].get('visual_update_cycle_interval', 10)
 
         # Store configuration and arguments
         self.logging_enabled = not args.nolog
@@ -69,16 +70,17 @@ class CommunicationMaster():
             # Create and write header to log file
             with open(self.logging_path, mode='w', newline='') as log_file:
                 csv_writer = csv.writer(log_file)
-                self.fields = ['Timestamp', 'Elapsed Time (s)']
+                self.fields = ['Timestamp', 'Elapsed Time (s)', 'Cycle Count', 'Absolute Cycle Time (ms)', 'Instrumental Cycle Time (ms)']
 
                 if self.pressure_enabled:
                     #   Add pressure rows to csv
-                    self.fields.extend(['Pressure_Read_Time_Delta (ms)', 'Pressure', 'Pressure_Unit'])
+                    self.fields.extend(['Pressure', 'Pressure_Unit'])
                     spec_header_info = {} # Dummy to avoid undefined error below
 
                 if self.spectrum_enabled:
-                    self.fields.insert(2, 'Spectrum_Read_Time_Delta (ms)')
+                    self.fields.insert(5, 'Effective Integration (%)')
                     spec_header_info = self.spectrum_analyzer.get_instrument_data()
+                    self.spec_sweep_time = float(spec_header_info.get('Sweep Time (ms)', config['spectrum_analyzer']['visa']['sweep_time']))
                     spectral_axis = self.spectrum_analyzer.get_spectral_axis()
                     self.non_freq_fields = self.fields.copy()
                     self.fields.extend([f"{freq} Hz" for freq in spectral_axis])
@@ -114,12 +116,14 @@ class CommunicationMaster():
 # Data Columns:
 #    Timestamp: Time of the log entry in ISO 8601 format (measured at start of logging cycle)
 #    Elapsed Time (s): Time since the start of logging in seconds (measured at start of logging cycle)
+#    Cycle Count: Count of measurement cycle
+#    Absolute Cycle Time (ms): Time for a full measurement cycle, measured as time between measurement cycle end and next cycle start
+#    Instrumental Cycle Time (ms): Time between sending a measurement request and recieving a measurement from instruments, measures instrumental lag
 #    Pressure Sensor Readings (if enabled):
 #       Pressure: Pressure reading from the sensor in specified units
 #       Pressure_Unit: Unit of the pressure reading
-#       Pressure_Read_Time_Delta (ms): Time delta between program read command and write time in miliseconds (i.e. time lost by communication/writing, inclusive of internal measurement time)
 #    Spectrum Analyzer Readings (if enabled):
-#       Spectrum_Read_Time_Delta (ms): Time delta between program read command and write time in miliseconds (i.e. time lost by communication/writing, inclusive of internal measurement time)
+#       Effective Integration (%): Percentage of a full cycle the Spectrum Analyzer is integrating signal over
 #       *amplitudes will be headed as their frequency value in Hz in subsequent columns (eg. 2450000000.0 Hz)*
 """
 
@@ -144,6 +148,7 @@ class CommunicationMaster():
     def start_logging(self, interval):
             start_time = time.time()
             cycle_ct = 0
+            prev_elapsed_time = None
             self.master_callback("message", f"Logging started. Writing to {self.logging_path}")
             curr_mem = os.path.getsize(self.logging_path)
             try:
@@ -157,6 +162,9 @@ class CommunicationMaster():
                         elapsed_time = current_loop_start - start_time
 
                         data = {'Timestamp': timestamp, 'Elapsed Time (s)': elapsed_time}
+                        cycle_time = elapsed_time - prev_elapsed_time if prev_elapsed_time is not None else 0
+                        data.update({'Cycle Count': cycle_ct, 'Absolute Cycle Time (ms)': cycle_time * 1000})
+
                         
                         # 1. Concurrent Hardware Read
                         reading_trigger_time = time.time()
@@ -179,8 +187,7 @@ class CommunicationMaster():
                             p_delta = (p_res['timestamp'] - reading_trigger_time) * 1000
                             data.update({
                                 'Pressure': p_res['pressure'],
-                                'Pressure_Unit': p_res['unit'],
-                                'Pressure_Read_Time_Delta (ms)': p_delta
+                                'Pressure_Unit': p_res['unit']
                             })
                         else:
                             p_delta = 0
@@ -188,11 +195,15 @@ class CommunicationMaster():
                         # 3. Process Spectrum Data
                         if s_res:
                             s_delta = (s_res['Timestamp'] - reading_trigger_time) * 1000
-                            data.update({
-                                'Spectrum_Read_Time_Delta (ms)': s_delta,
-                            })
                         else:
                             s_delta = 0
+                        
+                        # hw_wait is the duration of the slowest instrument response
+                        hw_wait = max(p_delta, s_delta) 
+                        if s_res:
+                            cycle_temporal_effecientcy = (self.spec_sweep_time / cycle_time if cycle_time != 0 else 1)
+                            data.update({'Effective Integration (%)': cycle_temporal_effecientcy})
+                        data.update({'Instrumental Cycle Time (ms)': hw_wait})
 
                         # 4. Prepare and Write CSV Row
                         sorted_data = [data.get(field, '') for field in self.non_freq_fields]
@@ -214,17 +225,15 @@ class CommunicationMaster():
                         # 5. Timing Calculations
                         loop_end_time = time.time()
                         
-                        # hw_wait is the duration of the slowest instrument response
-                        hw_wait = max(p_delta, s_delta) / 1000.0
                         # systematic_time is the overhead of Python/Writing/Formatting
-                        systematic_time = (loop_end_time - current_loop_start) - hw_wait
+                        systematic_time = ((loop_end_time - current_loop_start) - hw_wait / 1000) * 1000
                         
-                        if not self.visualization_enabled:
-                            print(f"[Cycle {cycle_ct}] HW Wait: {hw_wait*1000:.1f}ms | Overhead: {systematic_time*1000:.1f}ms | Total Est. Memory: {curr_mem / (1000**3):.8f}Gb ; {(curr_mem / (1000**3)) / ((loop_end_time - start_time) / 3600):.4f}Gb/hr | Measurement Cadence: {cycle_ct / (loop_end_time - start_time):.4f} Hz")
+                        if self.visualization_enabled:
+                            print(f"[Cycle {cycle_ct}] HW Wait: {hw_wait:.3f}ms | Overhead: {systematic_time:.3f}ms | Total Est. Memory: {curr_mem / (1000**3):.8f}Gb ; {(curr_mem / (1000**3)) / ((loop_end_time - start_time) / 3600):.4f}Gb/hr | Cadence: {cycle_ct / (loop_end_time - start_time):.4f} Hz | Eff. Integration {(cycle_temporal_effecientcy*100):.2f}%")
 
                         cycle_ct += 1
 
-                        if cycle_ct % 10 == 0 and self.visualization_enabled:
+                        if cycle_ct % self.vis_update_cadence == 0 and self.visualization_enabled:
                             # Prepare data package for the GUI
                             gui_data = {
                                 'amplitudes': s_res['Amplitudes'] if s_res else None,
@@ -232,10 +241,16 @@ class CommunicationMaster():
                                 'elapsed_time': elapsed_time,
                                 'file_size_mb': curr_mem / (1024**2),
                                 'gb_hr': (curr_mem / (1000**3)) / (elapsed_time / 3600) if elapsed_time > 0 else 0,
-                                'cadence': cycle_ct / elapsed_time if elapsed_time > 0 else 0
+                                'cadence': cycle_ct / elapsed_time if elapsed_time > 0 else 0,
+                                'cycle': cycle_ct,
+                                'cycle_time_ms': cycle_time*1000,
+                                'instrumental_time_ms': hw_wait,
+                                'integration_efficiency': cycle_temporal_effecientcy * 100 if s_res else 0
                             }
                             # Emit the signal (Thread-safe)
                             self.gui.data_received.emit(gui_data)
+
+                        prev_elapsed_time = elapsed_time
 
                         # 6. Intelligent Sleep (Subtracts work time from interval)
                         work_duration = time.time() - current_loop_start
@@ -271,7 +286,8 @@ def load_config(config_path):
     """Loads configuration from a JSON file."""
 
     with open(config_path, 'r') as config_file:
-        config = json.load(config_file)
+        config = json.load(config_file
+        )
     return config
 
 
