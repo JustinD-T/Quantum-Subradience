@@ -1,7 +1,10 @@
-from concurrent.futures import ThreadPoolExecutor
 from PressureSensor import PressureSensor
 from SpectrumAnalyzer import SpectrumAnalyzer
+from VisualInterface import VisualInterface
 
+from PyQt6 import QtWidgets, QtCore, QtGui
+
+from concurrent.futures import ThreadPoolExecutor
 import os
 import csv
 import time
@@ -46,6 +49,12 @@ class CommunicationMaster():
             except Exception as e:
                 print(f"ERROR: Failed to initialize Spectrum Analyzer (Continuing without it): {e}")
                 self.spectrum_enabled = False
+
+        if self.visualization_enabled:
+            self.app = QtWidgets.QApplication([])
+            spectral_axis = self.spectrum_analyzer.get_spectral_axis() if self.spectrum_enabled else None
+            self.gui = VisualInterface(spectral_axis=spectral_axis)
+            self.gui.show()
 
         # Initialize logging on a concurrent thread for continous logging
         if self.logging_enabled:
@@ -215,6 +224,19 @@ class CommunicationMaster():
 
                         cycle_ct += 1
 
+                        if cycle_ct % 10 == 0 and self.visualization_enabled:
+                            # Prepare data package for the GUI
+                            gui_data = {
+                                'amplitudes': s_res['Amplitudes'] if s_res else None,
+                                'pressure': p_res['pressure'] if p_res else 0,
+                                'elapsed_time': elapsed_time,
+                                'file_size_mb': curr_mem / (1024**2),
+                                'gb_hr': (curr_mem / (1000**3)) / (elapsed_time / 3600) if elapsed_time > 0 else 0,
+                                'cadence': cycle_ct / elapsed_time if elapsed_time > 0 else 0
+                            }
+                            # Emit the signal (Thread-safe)
+                            self.gui.data_received.emit(gui_data)
+
                         # 6. Intelligent Sleep (Subtracts work time from interval)
                         work_duration = time.time() - current_loop_start
                         sleep_time = max(0, interval - work_duration)
@@ -261,7 +283,7 @@ if __name__ == "__main__":
     parser.add_argument('--nolog', default=False, action='store_true', help='Disable logging')
     parser.add_argument('--nospectrum', default=False, action='store_true', help='Disable spectrum analyzer reading')
     parser.add_argument('--nopressure', default=False, action='store_true', help='Disable pressure sensor reading')
-    parser.add_argument('--novisual', default=True, action='store_true', help='Disable visualization module')
+    parser.add_argument('--novisual', default=False, action='store_true', help='Disable visualization module')
     parser.add_argument('--verbose', default=False, action='store_true', help='Enable verbose logging output')
     # NOT IMPLEMENTED
     # parser.add_argument('--maxcadence', default=False, action='store_true', help='Enable logging at the speed of the fastest cadence measurement device')
@@ -275,10 +297,14 @@ if __name__ == "__main__":
         exit(1)
 
     master = CommunicationMaster(config, args)
-    try:
-        master.stop_event.wait()
-    except KeyboardInterrupt:
-        print("\nUser interrupted. Shutting down...")
-        master.stop_logging()
-        master.stop_event.set()
+        
+    if args.novisual:
+        try:
+            master.stop_event.wait()
+        except KeyboardInterrupt:
+            master.stop_logging()
+    else:
+        # This keeps the Main Thread alive and responsive to the GUI
+        import sys
+        sys.exit(master.app.exec())
 
