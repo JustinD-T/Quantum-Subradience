@@ -27,6 +27,8 @@ class VisualInterface(QtWidgets.QMainWindow):
         # Data Buffers
         self.spectral_axis = spectral_axis if spectral_axis is not None else np.linspace(0, 1, 401)
         self.pressure_history = []
+        self.spectral_sum = np.zeros_like(np.array(spectral_axis))
+        self.spectral_counts = 0
         self.time_history = []
         self.deriv_latest = 0.0
         self.max_history = 200
@@ -169,9 +171,13 @@ class VisualInterface(QtWidgets.QMainWindow):
         self.cards["elapsed_time"].setText(f"{hrs:02d}:{mins:02d}:{secs:02d}")
 
     def update_spectrum(self, amplitudes):
+        
+        self.spectral_counts += 1
         amps = np.array(amplitudes)
+        self.spectral_sum += amps
         self.curve_power.setData(self.spectral_axis, amps)
-        self.curve_psd.setData(self.spectral_axis, amps - 30)
+
+        self.curve_psd.setData(self.spectral_axis, self.spectral_sum / self.spectral_counts)
 
     def update_pressure(self, pressure, elapsed_time):
         precision_p = round(pressure, 13)
