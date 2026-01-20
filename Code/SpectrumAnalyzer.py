@@ -135,16 +135,16 @@ class SpectrumAnalyzer():
         # Compute x-axis frequency values
         self.spectral_axis = [float(self.start_freq) + i * (float(self.stop_freq) - float(self.start_freq)) / (int(self.num_sweep_points) - 1) for i in range(int(self.num_sweep_points))]
 
+        # Stash reading
+        self.instrument.write(self.commands['initiate_sweep'])
+
     def log(self, log_type, message):
         if self.callback:
             self.callback(log_type, message)
 
     def get_amplitudes(self):
         
-        # Initiate a new sweep
-        self.instrument.write(self.commands['initiate_sweep'])
-
-        # Wait for operation to complete
+        # Wait for previous sweep to complete
         self.instrument.query(self.commands['operation_complete_query'])
 
         # Query trace data
@@ -153,6 +153,9 @@ class SpectrumAnalyzer():
             datatype='f', 
             is_big_endian=False
         )
+
+        # Initiate a new sweep
+        self.instrument.write(self.commands['initiate_sweep'])
 
         # Get write time
         write_time = time.time()

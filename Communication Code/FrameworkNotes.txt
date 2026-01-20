@@ -1,7 +1,0 @@
-
-
-General outline:
-    -Code for basic communication with instruments (indv. scripts)
-        -scripts upload to redis framework
-    -Dashboard reads from redis and generates dashboard GUI (connect w pyqt)
-        -Outbound comm thru GUI?

@@ -128,9 +128,7 @@ class CommunicationMaster():
 """
 
                 # Write header and rows to CSV file
-                log_lines = header.strip().split('\n')
-                for line in log_lines:
-                    csv_writer.writerow([line])
+                log_file.write(header)
                 csv_writer.writerow(self.fields)
 
             # Start logging thread
@@ -295,7 +293,7 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Start Communication with Pressure Sensor")
     parser.add_argument('-logp', help='Logging folder path', type=str)
-    parser.add_argument('-config', type=str, default=r'Communication Code\Code\Config.json', help='Path to configuration file')
+    parser.add_argument('-config', type=str, default=r'Code\Config.json', help='Path to configuration file')
     parser.add_argument('--nolog', default=False, action='store_true', help='Disable logging')
     parser.add_argument('--nospectrum', default=False, action='store_true', help='Disable spectrum analyzer reading')
     parser.add_argument('--nopressure', default=False, action='store_true', help='Disable pressure sensor reading')
