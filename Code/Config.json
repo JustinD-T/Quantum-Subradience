@@ -1,0 +1,89 @@
+{
+    "program": {
+        "reading_interval": 0,
+        "visual_update_cycle_interval" : 1
+    },
+    "pressure_sensor" : {
+        "serial": {
+            "port": "COM3",
+            "baudrate": 9600,
+            "bytesize": 8,
+            "parity": "N",
+            "stopbits": 1,
+            "timeout": 3,
+            "address" : "001",
+            "terminator" : "\r"
+        },
+        "commands": {
+            "read_value": {
+                "format": "{address}00{param_num}{data_len}{data}"
+            },
+            "set_value": {
+                "format": "{address}01{param_num}{data_len}{data}"
+            }
+        },
+        "parameters": {
+            "pressure": {
+                "number": "0740",
+                "response_type": "u_expo_new"
+            },
+            "unit": {
+                "number": "0643",
+                "response_type": "u_short_int",
+                "write_format": "{:03}",
+                "value_map": {
+                    "mbar": "000",
+                    "Torr": "001",
+                    "hPa": "002"
+                }
+            }
+        }
+    },
+    "spectrum_analyzer" : {    
+        "visa": {
+            "resource_string": "GPIB0::01::INSTR",
+            "visa_backend": "",
+            "timeout": 5000,
+            "center_frequency": 2.5e9,
+            "num_points" : 500,
+            "span": 10e6,
+            "reference_level": 0,
+            "power_unit" : "DBM",
+            "sweep_time" : 2500,
+            "auto_sweep_time": 0,
+            "data_format": "REAL, 32",
+            "byte_order": "SWAP",
+            "detector_mode" : "AVER",
+            "display_on" : "ON",
+            "single_sweep_mode" : "ON"
+        },
+        "commands": {
+            "identity_query": "*IDN?",
+            "set_display_on" : ":DISP:ENAB value",
+            "set_detector_mode" : ":SENS:DET:value",
+            "set_sweep_mode": ":INITiate:CONTinuous value",
+            "operation_complete_query": "*OPC?", 
+            "set_data_format": "FORM:DATA REAL,32",
+            "initiate_sweep": ":INITiate:IMMediate",
+            "set_byte_order": "FORM:BORD value",
+            "set_power_unit" : ":UNIT:POWer value",
+            "set_center_frequency": ":FREQuency:CENTer value",
+            "set_reference_level": ":DISPlay:WINDow:TRACe:Y:RLEVel value",
+            "set_span": ":FREQuency:SPAN value",
+            "set_sweep_time": ":SWEep:TIME value",
+            "set_num_points" : ":SENS:SWE:POIN value",
+            "set_sweep_time_auto": ":SWEep:TIME:AUTO value",
+            "set_averaging_state": ":AVERage:STATe value",
+            "set_averaging_count": ":AVERage:COUNt value",
+            "query_frequency_start": ":FREQuency:STARt?",
+            "query_frequency_stop": ":FREQuency:STOP?",
+            "query_sweep_points": ":SWEep:POINts?",
+            "query_trace_data": ":TRACe:DATA? TRACE1",
+            "query_reference_level": ":DISPlay:WINDow:TRACe:Y:RLEVel?",
+            "query_center_frequency": ":FREQuency:CENTer?",
+            "query_span": ":FREQuency:SPAN?",
+            "query_power_unit": ":UNIT:POWer?",
+            "query_sweep_time": "SWEep:TIME?"
+        }
+    }
+}
