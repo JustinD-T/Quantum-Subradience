@@ -85,6 +85,9 @@ class CommunicationMaster():
                     self.non_freq_fields = self.fields.copy()
                     self.fields.extend([f"{freq} Hz" for freq in spectral_axis])
                     
+                # Get CO Concerntration if applicable
+                init_CO_conc = input("Enter initial CO Concentration in ppm (or leave blank to skip): ")
+                
                 # Header info
                 header = f"""# Experiment Log ({timestamp})
 # Experiment Configuration:
@@ -92,6 +95,9 @@ class CommunicationMaster():
 #    spectrum_enabled: {self.spectrum_enabled}
 #    pressure_enabled: {self.pressure_enabled}
 #    visualization_enabled: {self.visualization_enabled}
+#    reading_interval (s): {self.interval}
+#    visual_update_cycle_interval: {self.vis_update_cadence}
+#    initial_CO_concentration (ppm): {init_CO_conc if init_CO_conc != '' else 'N/A'}
 # Serial Configuration ({'ENABLED' if self.pressure_enabled else 'DISABLED'}):
 #    Port: {self.config['pressure_sensor']['serial'].get('port', 'COM1')}
 #    Baudrate: {self.config['pressure_sensor']['serial'].get('baudrate', 9600)}

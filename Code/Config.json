@@ -45,7 +45,7 @@
             "visa_backend": "",
             "timeout": 5000,
             "center_frequency": 2.5e9,
-            "num_points" : 500,
+            "num_points" : 401,
             "span": 10e6,
             "reference_level": 0,
             "power_unit" : "DBM",
