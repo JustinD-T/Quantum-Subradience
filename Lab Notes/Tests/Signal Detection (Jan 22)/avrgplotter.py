@@ -63,7 +63,7 @@ def plot_data(amp_df, freqs, sweep_time=2.5):
     plt.close()
 
 def plot_change(amp_df, freqs, pressures, sweep_time=2.5, datapoint_interval=100, zoom_to=None):
-    plt.figure(figsize=(18, 6))
+    plt.figure(figsize=(18, 10))
     plt.grid(True)
     x = freqs
     for i in range(0, amp_df.shape[0], datapoint_interval):
@@ -170,6 +170,7 @@ def power_vs_pressure(amp_df, freqs, pressures, N_AVRG=100, WIDTH=0.05):
     plt.plot(average_pressures, poly(average_pressures), "r--", label=f"Fit: y={p[0]:.2f}x + {p[1]:.2f}")
 
     plt.xlabel('Median Pressure (mbar)')
+    # plt.xscale('log')
     plt.ylabel(f'Integrated Power (in +/- {WIDTH/2} MHz window)')
     plt.suptitle(f'Integrated Power vs. Pressure (Averaged over {N_AVRG} readings)')
     plt.legend()
@@ -177,13 +178,14 @@ def power_vs_pressure(amp_df, freqs, pressures, N_AVRG=100, WIDTH=0.05):
     plt.close()
 
 if __name__ == "__main__":
-    path = r'Lab Notes\Tests\Signal Detection (Jan 22)\Data\temp.csv'
+    path = r'Lab Notes\Tests\Signal Detection (Jan 22)\Data\Jan22Depressurization.csv'
+    # path = r'Lab Notes\Tests\Signal Detection (Jan 22)\Data\Jan22FullRun.csv'
     sweep_time = 2.5  # seconds
     amp_df, freqs, pressures = load_data(path)
     # amp_df = subtract_continuum(amp_df)
     # amp_df, freqs = bin_data(amp_df, freqs, bin_size=5)
     # amp_df, freqs = hanning_filter(amp_df, freqs, window_size=5)
-    plot_change(amp_df, freqs, pressures, sweep_time, datapoint_interval=250, zoom_to=1)
+    plot_change(amp_df, freqs, pressures, sweep_time, datapoint_interval=1000, zoom_to=0.5)
     plot_data(amp_df, freqs, sweep_time)
     plot_pressure_best_fit_derivative(pressures, sweep_time)
-    power_vs_pressure(amp_df, freqs, pressures, N_AVRG=30, WIDTH=0.05)
+    power_vs_pressure(amp_df, freqs, pressures, N_AVRG=50, WIDTH=0.001)
