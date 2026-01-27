@@ -299,7 +299,7 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Start Communication with Pressure Sensor")
     parser.add_argument('-logp', help='Logging folder path', type=str)
-    parser.add_argument('-config', type=str, default=r'Code\Config.json', help='Path to configuration file')
+    parser.add_argument('-config', type=str, default=r'Code\Config_HS.json', help='Path to configuration file')
     parser.add_argument('--nolog', default=False, action='store_true', help='Disable logging')
     parser.add_argument('--nospectrum', default=False, action='store_true', help='Disable spectrum analyzer reading')
     parser.add_argument('--nopressure', default=False, action='store_true', help='Disable pressure sensor reading')
