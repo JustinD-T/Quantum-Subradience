@@ -43,24 +43,30 @@
         "visa": {
             "resource_string": "GPIB0::01::INSTR",
             "visa_backend": "",
-            "timeout": 5000,
+            "timeout": 10000,
             "center_frequency": 2.5e9,
-            "num_points" : 401,
+            "num_points" : 801,
             "span": 10e6,
-            "reference_level": 0,
-            "power_unit" : "DBM",
+            "reference_level": 2.5e-12,
+            "power_unit" : "W",
+            "amplitude_space" : "LIN",
             "sweep_time" : 2500,
             "auto_sweep_time": 0,
             "data_format": "REAL, 32",
             "byte_order": "SWAP",
-            "detector_mode" : "AVER",
+            "detector_mode" : "SAMP",
             "display_on" : "ON",
-            "single_sweep_mode" : "ON"
+            "single_sweep_mode" : "ON",
+            "attenuation" : 0,
+            "RBW": 100e3,
+            "VBW": 100e3
         },
         "commands": {
             "identity_query": "*IDN?",
             "set_display_on" : ":DISP:ENAB value",
-            "set_detector_mode" : ":SENS:DET:value",
+            "set_amplitude_space": "DISP:WIND:TRAC:Y:SCAL:SPAC value",
+            "query_amplitude_space" : "DISP:WIND:TRAC:Y:SCAL:SPAC?",
+            "set_detector_mode" : ":SENS:DET value",
             "set_sweep_mode": ":INITiate:CONTinuous value",
             "operation_complete_query": "*OPC?", 
             "set_data_format": "FORM:DATA REAL,32",
@@ -83,7 +89,10 @@
             "query_center_frequency": ":FREQuency:CENTer?",
             "query_span": ":FREQuency:SPAN?",
             "query_power_unit": ":UNIT:POWer?",
-            "query_sweep_time": "SWEep:TIME?"
+            "query_sweep_time": "SWEep:TIME?",
+            "set_attenuation": ":SENSE:POWER:RF:ATTENUATION value",
+            "set_RBW" : ":SENSE:BANDWIDTH:RESOLUTION value",
+            "set_VBW" : ":SENSE:BANDWIDTH:VIDEO value"
         }
     }
 }
