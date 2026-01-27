@@ -114,10 +114,11 @@ class CommunicationMaster():
 #    Number of Points: {spec_header_info.get('Number of Points', 'N/A')}
 #    Sweep Time (ms): {spec_header_info.get('Sweep Time (ms)', 'N/A')}
 #    Span: {spec_header_info.get('Span', 'N/A')}
+#    Amplitude Space: {spec_header_info.get('Amplitude Space', 'N/A')}
 #    Frequency Start (Hz): {spec_header_info.get('Frequency Start (Hz)', 'N/A')}
 #    Frequency Stop (Hz): {spec_header_info.get('Frequency Stop (Hz)', 'N/A')}
 #    Center Frequency (Hz): {spec_header_info.get('Center Frequency (Hz)', 'N/A')}
-#    Reference Level (dBm): {spec_header_info.get('Reference Level (dBm)', 'N/A')}
+#    Reference Level ({spec_header_info.get('Power Unit', 'N/A')}): {spec_header_info.get('Reference Level (dBm)', 'N/A')}
 #    Power Unit: {spec_header_info.get('Power Unit', 'N/A')}
 # Data Columns:
 #    Timestamp: Time of the log entry in ISO 8601 format (measured at start of logging cycle)
@@ -210,14 +211,16 @@ class CommunicationMaster():
                         data.update({'Instrumental Cycle Time (ms)': hw_wait})
 
                         # 4. Prepare and Write CSV Row
-                        sorted_data = [data.get(field, '') for field in self.non_freq_fields]
+                        if self.spectrum_enabled:
+                            sorted_data = [data.get(field, '') for field in self.non_freq_fields]
                         if s_res:
                             sorted_data.extend(s_res['Amplitudes'])
 
-                        csv_writer.writerow(sorted_data)
+                        if self.spectrum_enabled:
+                            csv_writer.writerow(sorted_data)
 
-                        # Update current memory usage
-                        curr_mem += len(",".join(map(str, sorted_data)).encode('utf-8'))
+                            # Update current memory usage
+                            curr_mem += len(",".join(map(str, sorted_data)).encode('utf-8'))
 
                         # Safety: Flush to OS every loop, Sync to Physical Disk every 50
                         log_file.flush()
@@ -299,7 +302,7 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Start Communication with Pressure Sensor")
     parser.add_argument('-logp', help='Logging folder path', type=str)
-    parser.add_argument('-config', type=str, default=r'Code\Config_HS.json', help='Path to configuration file')
+    parser.add_argument('-config', type=str, default=r'Code\Config.json', help='Path to configuration file')
     parser.add_argument('--nolog', default=False, action='store_true', help='Disable logging')
     parser.add_argument('--nospectrum', default=False, action='store_true', help='Disable spectrum analyzer reading')
     parser.add_argument('--nopressure', default=False, action='store_true', help='Disable pressure sensor reading')

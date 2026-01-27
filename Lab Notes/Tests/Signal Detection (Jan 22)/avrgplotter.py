@@ -178,7 +178,7 @@ def power_vs_pressure(amp_df, freqs, pressures, N_AVRG=100, WIDTH=0.05):
     plt.close()
 
 if __name__ == "__main__":
-    path = r'Lab Notes\Tests\Signal Detection (Jan 22)\Data\Jan22Depressurization.csv'
+    path = r'Lab Notes\Tests\Signal Detection (Jan 22)\Data\Jan22FullRun.csv'
     # path = r'Lab Notes\Tests\Signal Detection (Jan 22)\Data\Jan22FullRun.csv'
     sweep_time = 2.5  # seconds
     amp_df, freqs, pressures = load_data(path)

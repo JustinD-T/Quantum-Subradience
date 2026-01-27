@@ -133,6 +133,14 @@ class SpectrumAnalyzer():
         except Exception as e:
             self.log('error', f"Error setting VBW to {VBW}: {e}")
 
+        # Set amplitude space
+        try:
+            amplitude_space = config['visa'].get('amplitude_space', 'LOG')
+            self.instrument.write(self.commands['set_amplitude_space'].replace('value', amplitude_space))
+        except Exception as e:
+            self.log('error', f"Error setting amplitude_space to {amplitude_space}: {e}")
+
+
         # Initiate a sweep to apply settings
         try:
             self.instrument.write(self.commands['initiate_sweep'])
@@ -191,6 +199,7 @@ class SpectrumAnalyzer():
         center_freq = self.instrument.query(self.commands['query_center_frequency']).strip()
         ref_level = self.instrument.query(self.commands['query_reference_level']).strip()
         power_unit = self.instrument.query(self.commands['query_power_unit']).strip()
+        amplitude_space = self.instrument.query(self.commands['query_amplitude_space']).strip()
         span = self.instrument.query(self.commands['query_span']).strip()
         if self.auto_sweep is True:
             sweep_time = 'Auto'
@@ -204,7 +213,8 @@ class SpectrumAnalyzer():
             "Center Frequency (Hz)": center_freq,
             "Reference Level (dBm)": ref_level,
             "Power Unit": power_unit,
-            "Sweep Time (ms)" : sweep_time
+            "Sweep Time (ms)" : sweep_time,
+            "Amplitude Space": amplitude_space
         }
 
     def get_spectral_axis(self):
