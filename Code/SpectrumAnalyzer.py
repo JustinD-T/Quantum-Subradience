@@ -112,6 +112,27 @@ class SpectrumAnalyzer():
         except Exception as e:
             self.log('error', f"Error setting detector_mode to {detector_mode}: {e}")
         
+        # Set attenuation
+        try:
+            attenuation = config['visa'].get('attenuation', 20)
+            self.instrument.write(self.commands['set_attenuation'].replace('value', str(attenuation)))
+        except Exception as e:
+            self.log('error', f"Error setting attenuation to {attenuation}: {e}")
+
+        # Set RBW
+        try:
+            RBW = config['visa'].get('RBW', 1e6)
+            self.instrument.write(self.commands['set_RBW'].replace('value', str(RBW)))
+        except Exception as e:
+            self.log('error', f"Error setting RBW to {RBW}: {e}")
+
+        # Set VBW
+        try:   
+            VBW = config['visa'].get('VBW', 1e5)
+            self.instrument.write(self.commands['set_VBW'].replace('value', str(VBW)))
+        except Exception as e:
+            self.log('error', f"Error setting VBW to {VBW}: {e}")
+
         # Initiate a sweep to apply settings
         try:
             self.instrument.write(self.commands['initiate_sweep'])
