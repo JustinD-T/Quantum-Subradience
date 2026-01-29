@@ -2,17 +2,18 @@ import pandas as pd
 import numpy as np
 import os
 from scipy.signal import savgol_filter
+import allan_variance as av
 import matplotlib.pyplot as plt
 
 # --- 1. Configuration & Path Setup ---
-experiment_name = "Jan23_BaselineTest"
-data_file = rf'Lab Notes\Tests\Noise Floor (Jan 20)\Data\BaselineTestjan23.csv'
+experiment_name = "Jan28_BaselineTest"
+data_file = rf'Lab Notes\Tests\Noise Floor (Jan 20)\Data\BaselineTestjan28.csv'
 save_dir = r"Lab Notes\Tests\Noise Floor (Jan 20)\Plots"
 baseline_save_dir = r"Lab Notes\Tests\Noise Floor (Jan 20)\Baselines"
 
 # Baseline Parameters
-sg_window = 81
-sg_poly = 3
+sg_window = 101  # Must be odd
+sg_poly = 4
 
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
@@ -25,32 +26,28 @@ freq_cols = [c for c in df.columns if 'Hz' in c]
 spectrum_matrix = df[freq_cols].values 
 sample_rate = df['Absolute Cycle Time (ms)'].mean() / 1000.0 
 
-# --- 2. Allan Deviation Calculation ---
-def calculate_allan_deviation(data, rate):
-    n = len(data)
-    avg_data = np.mean(data, axis=1) 
-    taus = np.logspace(0, np.log10(n // 5), 50).astype(int)
-    adevs = []
-    actual_taus = []
-    for m in taus:
-        if m <= 0: continue
-        m_samples = n - 2*m
-        if m_samples <= 0: break
-        sum_sq = 0
-        for i in range(m_samples):
-            block1 = np.mean(avg_data[i : i+m])
-            block2 = np.mean(avg_data[i+m : i+2*m])
-            sum_sq += (block2 - block1)**2
-        adevs.append(np.sqrt(sum_sq / (2 * m_samples)))
-        actual_taus.append(m * rate)
-    return np.array(actual_taus), np.array(adevs)
+tau, avar = av.compute_avar(spectrum_matrix, sample_rate)
+params, avar_pred = av.estimate_parameters(tau, avar)
+plt.loglog(tau, avar, '.', label='Computed')
+plt.loglog(tau, avar_pred, label='Modeled with estimated parameters')
+plt.legend()
+plt.xlabel("Averaging time, s")
+plt.ylabel("AVAR (Watts)")
+plt.title("Allan Variance")
+min_idx = np.argmin(avar)
+opt_tau = tau[min_idx]
+plt.annotate(f'Optimal Integration Time: {opt_tau:.1f}s)',
+             xy=(opt_tau, min_adev*1e12), xytext=(opt_tau*1.2, min_adev*2e12),
+             arrowprops=dict(facecolor='black', shrink=0.05, width=1, headwidth=5),
+             fontsize=10)
 
-taus, adevs = calculate_allan_deviation(spectrum_matrix, sample_rate)
+
+
 
 # --- 3. Detect Optimal Integration Time (Maximum SNR) ---
-min_idx = np.argmin(adevs)
-opt_tau = taus[min_idx]
-min_adev = adevs[min_idx]
+# min_idx = np.argmin(adevs)
+# opt_tau = taus[min_idx]
+# min_adev = adevs[min_idx]
 
 # --- 4. Baseline Extraction & Export ---
 raw_mean = np.mean(spectrum_matrix, axis=0)
@@ -63,21 +60,21 @@ np.save(os.path.join(baseline_save_dir, f"Baseline_{experiment_name}.npy"), smoo
 # --- 5. Plotting ---
 
 # Allan Deviation Plot
-plt.figure(figsize=(12, 7))
-plt.loglog(taus, adevs * 1e12, 'b-o', markersize=4, label='Measured Stability')
-plt.loglog(taus, (adevs[0] * (taus[0] / taus)**0.5)*1e12, 'r--', alpha=0.6, label='White Noise Limit ($1/\sqrt{\\tau}$)')
-plt.axvline(x=opt_tau, color='green', linestyle=':', linewidth=2, label=f'Max SNR at {opt_tau:.1f}s')
-plt.annotate(f'Optimal Integration Time: {opt_tau:.1f}s\n(Min Dev: {min_adev*1e12:.2f} pW)',
-             xy=(opt_tau, min_adev*1e12), xytext=(opt_tau*1.2, min_adev*2e12),
-             arrowprops=dict(facecolor='black', shrink=0.05, width=1, headwidth=5),
-             fontsize=10)
-plt.title(f"Allan Deviation - Experiment: {experiment_name}")
-plt.xlabel("Integration Time $\\tau$ (seconds)")
-plt.ylabel("Allan Deviation $\sigma(\\tau)$ (Picowatts)")
-plt.legend()
-plt.grid(True, which="both", ls="-", alpha=0.3)
-plt.savefig(os.path.join(save_dir, "allan_variance_snr_optimized.png"))
-plt.close()
+# plt.figure(figsize=(12, 7))
+# plt.loglog(taus, adevs * 1e12, 'b-o', markersize=4, label='Measured Stability')
+# plt.loglog(taus, (adevs[0] * (taus[0] / taus)**0.5)*1e12, 'r--', alpha=0.6, label='White Noise Limit ($1/\sqrt{\\tau}$)')
+# plt.axvline(x=opt_tau, color='green', linestyle=':', linewidth=2, label=f'Max SNR at {opt_tau:.1f}s')
+# plt.annotate(f'Optimal Integration Time: {opt_tau:.1f}s\n(Min Dev: {min_adev*1e12:.2f} pW)',
+#              xy=(opt_tau, min_adev*1e12), xytext=(opt_tau*1.2, min_adev*2e12),
+#              arrowprops=dict(facecolor='black', shrink=0.05, width=1, headwidth=5),
+#              fontsize=10)
+# plt.title(f"Allan Deviation - Experiment: {experiment_name}")
+# plt.xlabel("Integration Time $\\tau$ (seconds)")
+# plt.ylabel("Allan Deviation $\sigma(\\tau)$ (Picowatts)")
+# plt.legend()
+# plt.grid(True, which="both", ls="-", alpha=0.3)
+# plt.savefig(os.path.join(save_dir, "allan_variance_snr_optimized.png"))
+# plt.close()
 
 # Wide Baseline Plot
 plt.figure(figsize=(18, 6)) # Expanded width
