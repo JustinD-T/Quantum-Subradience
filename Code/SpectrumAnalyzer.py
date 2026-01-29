@@ -201,6 +201,10 @@ class SpectrumAnalyzer():
         power_unit = self.instrument.query(self.commands['query_power_unit']).strip()
         amplitude_space = self.instrument.query(self.commands['query_amplitude_space']).strip()
         span = self.instrument.query(self.commands['query_span']).strip()
+        rbw = self.instrument.query(self.commands['query_RBW']).strip()
+        vbw = self.instrument.query(self.commands['query_VBW']).strip()
+        attenuation = self.instrument.query(self.commands['query_attenuation']).strip()
+        detector_type = self.instrument.query(self.commands['query_detector_mode']).strip()
         if self.auto_sweep is True:
             sweep_time = 'Auto'
         else:
@@ -214,6 +218,10 @@ class SpectrumAnalyzer():
             "Reference Level (dBm)": ref_level,
             "Power Unit": power_unit,
             "Sweep Time (ms)" : sweep_time,
+            "RBW (Hz)": rbw,
+            "VBW (Hz)": vbw,
+            "Attenuation (dB)": attenuation,
+            "Detector Type": detector_type,
             "Amplitude Space": amplitude_space
         }
 

@@ -114,6 +114,10 @@ class CommunicationMaster():
 #    Number of Points: {spec_header_info.get('Number of Points', 'N/A')}
 #    Sweep Time (ms): {spec_header_info.get('Sweep Time (ms)', 'N/A')}
 #    Span: {spec_header_info.get('Span', 'N/A')}
+#    RBW (Hz): {spec_header_info.get('RBW (Hz)', 'N/A')}
+#    VBW (Hz): {spec_header_info.get('VBW (Hz)', 'N/A')}
+#    Attenuation (dB): {spec_header_info.get('Attenuation (dB)', 'N/A')}
+#    Detector Type: {spec_header_info.get('Detector Type', 'N/A')}
 #    Amplitude Space: {spec_header_info.get('Amplitude Space', 'N/A')}
 #    Frequency Start (Hz): {spec_header_info.get('Frequency Start (Hz)', 'N/A')}
 #    Frequency Stop (Hz): {spec_header_info.get('Frequency Stop (Hz)', 'N/A')}
