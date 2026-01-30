@@ -11,6 +11,9 @@ class VisualInterface(QtWidgets.QMainWindow):
 
     def __init__(self, spectral_axis=None):
         super().__init__()
+
+        BASELINE = True
+
         self.setWindowTitle("Quantum-Subradience Real-Time Monitor")
         self.resize(1400, 950)
 
@@ -32,6 +35,13 @@ class VisualInterface(QtWidgets.QMainWindow):
         self.time_history = []
         self.deriv_latest = 0.0
         self.max_history = 200
+
+        # Get baseline
+        if BASELINE is True:
+            with open(r'Experimental Values\baseline.json', 'r') as f:
+                import json
+                baseline_list = json.load(f)
+                self.baseline = np.array(baseline_list)
 
         # Averaging Buffers for Informational Metrics (Rolling average of last 10 updates)
         self.avg_window = 10
@@ -174,7 +184,7 @@ class VisualInterface(QtWidgets.QMainWindow):
         
         self.spectral_counts += 1
         amps = np.array(amplitudes)
-        self.spectral_sum += amps
+        self.spectral_sum += (amps)
         self.curve_power.setData(self.spectral_axis, amps)
 
         self.curve_psd.setData(self.spectral_axis, self.spectral_sum / self.spectral_counts)
