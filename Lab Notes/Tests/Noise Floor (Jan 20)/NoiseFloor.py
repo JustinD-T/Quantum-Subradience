@@ -36,6 +36,9 @@ plt.ylabel("AVAR (Watts)")
 plt.title("Allan Variance")
 min_idx = np.argmin(avar)
 opt_tau = tau[min_idx]
+min_adev = np.sqrt(avar[min_idx])
+plt.axvline(x=opt_tau, color='red', linestyle=':', label=f'Optimal Tau: {opt_tau:.1f}s')
+plt.legend()
 plt.annotate(f'Optimal Integration Time: {opt_tau:.1f}s)',
              xy=(opt_tau, min_adev*1e12), xytext=(opt_tau*1.2, min_adev*2e12),
              arrowprops=dict(facecolor='black', shrink=0.05, width=1, headwidth=5),
@@ -45,9 +48,9 @@ plt.annotate(f'Optimal Integration Time: {opt_tau:.1f}s)',
 
 
 # --- 3. Detect Optimal Integration Time (Maximum SNR) ---
-# min_idx = np.argmin(adevs)
-# opt_tau = taus[min_idx]
-# min_adev = adevs[min_idx]
+min_idx = np.argmin(adevs)
+opt_tau = taus[min_idx]
+min_adev = adevs[min_idx]
 
 # --- 4. Baseline Extraction & Export ---
 raw_mean = np.mean(spectrum_matrix, axis=0)
@@ -60,21 +63,21 @@ np.save(os.path.join(baseline_save_dir, f"Baseline_{experiment_name}.npy"), smoo
 # --- 5. Plotting ---
 
 # Allan Deviation Plot
-# plt.figure(figsize=(12, 7))
-# plt.loglog(taus, adevs * 1e12, 'b-o', markersize=4, label='Measured Stability')
-# plt.loglog(taus, (adevs[0] * (taus[0] / taus)**0.5)*1e12, 'r--', alpha=0.6, label='White Noise Limit ($1/\sqrt{\\tau}$)')
-# plt.axvline(x=opt_tau, color='green', linestyle=':', linewidth=2, label=f'Max SNR at {opt_tau:.1f}s')
-# plt.annotate(f'Optimal Integration Time: {opt_tau:.1f}s\n(Min Dev: {min_adev*1e12:.2f} pW)',
-#              xy=(opt_tau, min_adev*1e12), xytext=(opt_tau*1.2, min_adev*2e12),
-#              arrowprops=dict(facecolor='black', shrink=0.05, width=1, headwidth=5),
-#              fontsize=10)
-# plt.title(f"Allan Deviation - Experiment: {experiment_name}")
-# plt.xlabel("Integration Time $\\tau$ (seconds)")
-# plt.ylabel("Allan Deviation $\sigma(\\tau)$ (Picowatts)")
-# plt.legend()
-# plt.grid(True, which="both", ls="-", alpha=0.3)
-# plt.savefig(os.path.join(save_dir, "allan_variance_snr_optimized.png"))
-# plt.close()
+plt.figure(figsize=(12, 7))
+plt.loglog(taus, adevs * 1e12, 'b-o', markersize=4, label='Measured Stability')
+plt.loglog(taus, (adevs[0] * (taus[0] / taus)**0.5)*1e12, 'r--', alpha=0.6, label='White Noise Limit ($1/\sqrt{\\tau}$)')
+plt.axvline(x=opt_tau, color='green', linestyle=':', linewidth=2, label=f'Max SNR at {opt_tau:.1f}s')
+plt.annotate(f'Optimal Integration Time: {opt_tau:.1f}s\n(Min Dev: {min_adev*1e12:.2f} pW)',
+             xy=(opt_tau, min_adev*1e12), xytext=(opt_tau*1.2, min_adev*2e12),
+             arrowprops=dict(facecolor='black', shrink=0.05, width=1, headwidth=5),
+             fontsize=10)
+plt.title(f"Allan Deviation - Experiment: {experiment_name}")
+plt.xlabel("Integration Time $\\tau$ (seconds)")
+plt.ylabel("Allan Deviation $\sigma(\\tau)$ (Picowatts)")
+plt.legend()
+plt.grid(True, which="both", ls="-", alpha=0.3)
+plt.savefig(os.path.join(save_dir, "allan_variance_snr_optimized.png"))
+plt.close()
 
 # Wide Baseline Plot
 plt.figure(figsize=(18, 6)) # Expanded width
