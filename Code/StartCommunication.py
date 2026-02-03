@@ -11,6 +11,9 @@ import time
 import json
 import threading
 
+
+# ERROR WHERE SOME SETTINGS JS ARE NOT SET, ADD CHECK
+
 class CommunicationMaster():
 
     def __init__(self, config, args):
@@ -90,6 +93,7 @@ class CommunicationMaster():
                 
                 # Header info
                 header = f"""# Experiment Log ({timestamp})
+#    Experiment Description: {input("Enter experiment description (or leave blank): ")}
 # Experiment Configuration:
 #    logging_enabled: {self.logging_enabled}
 #    spectrum_enabled: {self.spectrum_enabled}
