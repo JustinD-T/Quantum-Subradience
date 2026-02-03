@@ -136,9 +136,9 @@ def plot_rolling_noise_reduction(spectrum_df, sweep_time=2.5, max_window=200):
     return integration_times, stds
 
 if __name__ == "__main__":
-    path = r'Code\Graphing Code\ExperimentLog_20260129-123129.csv'
+    path = r'ExperimentLogs\ExperimentLog_20260202-191331.csv'
     headers_df, spectrum_df = load_data(path)
-    baseline = determine_baseline(spectrum_df)
+    # baseline = determine_baseline(spectrum_df)
     import json
     # with open('baseline.json', 'w') as f:
     #     json.dump(baseline.tolist(), f)

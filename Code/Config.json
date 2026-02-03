@@ -47,7 +47,7 @@
             "center_frequency": 2.5e9,
             "num_points" : 1001,
             "span": 5e6,
-            "reference_level": 0,
+            "reference_level": 50e-12,
             "power_unit" : "W",
             "amplitude_space" : "LIN",
             "sweep_time" : 2500,
