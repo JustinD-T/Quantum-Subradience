@@ -32,6 +32,7 @@ class SpectrumAnalyzer():
         try:
             self.instrument.write(self.commands['set_data_format'].replace('value', config['visa'].get('data_format', 'REAL, 32')))
             self.instrument.write(self.commands['set_byte_order'].replace('value', config['visa'].get('byte_order', 'SWAP')))
+            time.sleep(0.2)  # Allow time for settings to take effect
         except Exception as e:
             self.log('error', f"Error configuring Spectrum Analyzer byte/data format: {e}")
 
@@ -39,6 +40,7 @@ class SpectrumAnalyzer():
         try:
             center_freq = config['visa'].get('center_frequency', 2.5e9)
             self.instrument.write(self.commands['set_center_frequency'].replace('value', str(center_freq)))
+            time.sleep(0.2)  # Allow time for settings to take effect
         except Exception as e:
             self.log('error', f"Error setting center frequency: {e}")
 
@@ -46,6 +48,7 @@ class SpectrumAnalyzer():
         try:
             ref_level = config['visa'].get('reference_level', 0)
             self.instrument.write(self.commands['set_reference_level'].replace('value', str(ref_level)))
+            time.sleep(0.2)  # Allow time for settings to take effect
         except Exception as e:
             self.log('error', f"Error setting reference level: {e}")
 
@@ -53,6 +56,7 @@ class SpectrumAnalyzer():
         try:
             span = config['visa'].get('span', 1e8)
             self.instrument.write(self.commands['set_span'].replace('value', str(span)))
+            time.sleep(0.2)  # Allow time for settings to take effect
         except Exception as e:
             self.log('error', f"Error setting span: {e}")
 
@@ -60,6 +64,7 @@ class SpectrumAnalyzer():
         try:
             power_unit = config['visa'].get('power_unit', 'DBM')
             self.instrument.write(self.commands['set_power_unit'].replace('value', power_unit))
+            time.sleep(0.2)  # Allow time for settings to take effect
         except Exception as e:
             self.log('error', f"Error setting power unit: {e}")
 
@@ -67,6 +72,7 @@ class SpectrumAnalyzer():
         try:
             num_points = config['visa'].get('num_points', 401)
             self.instrument.write(self.commands['set_num_points'].replace('value', str(num_points)))
+            time.sleep(0.2)  # Allow time for settings to take effect
         except Exception as e:
             self.log('error', f"Error setting number of points: {e}")
 
@@ -79,6 +85,7 @@ class SpectrumAnalyzer():
             auto_sweep_time = config['visa'].get('auto_sweep_time', 0)
             self.instrument.write(self.commands['set_sweep_time_auto'].replace('value', str(auto_sweep_time)))
             self.auto_sweep = True
+
         except Exception as e:
             self.log('error', f"Error setting auto_sweep_time to {auto_sweep_time}: {e}")
 
@@ -88,6 +95,7 @@ class SpectrumAnalyzer():
                 sweep_time = config['visa'].get('sweep_time', 100) / 1000 #Convert to ms
                 self.instrument.write(self.commands['set_sweep_time'].replace('value', str(sweep_time)))
                 self.auto_sweep = False
+                time.sleep(0.2)  # Allow time for settings to take effect
             except Exception as e:
                 self.log('error', f'Error setting sweep_time to {sweep_time}: {e}')
             
@@ -95,6 +103,7 @@ class SpectrumAnalyzer():
         try:
             sweep_mode = config['visa'].get('single_sweep_mode', 'OFF')
             self.instrument.write(self.commands['set_sweep_mode'].replace('value', sweep_mode))
+            time.sleep(0.2)  # Allow time for settings to take effect
         except Exception as e:
             self.log('error', f"Error setting singe_sweep_mode to {sweep_mode}: {e}")
 
@@ -102,6 +111,7 @@ class SpectrumAnalyzer():
         try:
             display_on = config['visa'].get('display_on', 'ON')
             self.instrument.write(self.commands['set_display_on'].replace('value', display_on))
+            time.sleep(0.2)  # Allow time for settings to take effect
         except Exception as e:
             self.log('error', f"Error setting display_on to {display_on}: {e}")
         
@@ -109,6 +119,7 @@ class SpectrumAnalyzer():
         try:
             detector_mode = config['visa'].get('detector_mode', 'AVER')
             self.instrument.write(self.commands['set_detector_mode'].replace('value', detector_mode))
+            time.sleep(0.2)  # Allow time for settings to take effect
         except Exception as e:
             self.log('error', f"Error setting detector_mode to {detector_mode}: {e}")
         
@@ -116,6 +127,7 @@ class SpectrumAnalyzer():
         try:
             attenuation = config['visa'].get('attenuation', 20)
             self.instrument.write(self.commands['set_attenuation'].replace('value', str(attenuation)))
+            time.sleep(0.2)  # Allow time for settings to take effect
         except Exception as e:
             self.log('error', f"Error setting attenuation to {attenuation}: {e}")
 
@@ -123,6 +135,7 @@ class SpectrumAnalyzer():
         try:
             RBW = config['visa'].get('RBW', 1e6)
             self.instrument.write(self.commands['set_RBW'].replace('value', str(RBW)))
+            time.sleep(0.2)  # Allow time for settings to take effect
         except Exception as e:
             self.log('error', f"Error setting RBW to {RBW}: {e}")
 
@@ -130,6 +143,7 @@ class SpectrumAnalyzer():
         try:   
             VBW = config['visa'].get('VBW', 1e5)
             self.instrument.write(self.commands['set_VBW'].replace('value', str(VBW)))
+            time.sleep(0.2)  # Allow time for settings to take effect
         except Exception as e:
             self.log('error', f"Error setting VBW to {VBW}: {e}")
 
@@ -137,6 +151,7 @@ class SpectrumAnalyzer():
         try:
             amplitude_space = config['visa'].get('amplitude_space', 'LOG')
             self.instrument.write(self.commands['set_amplitude_space'].replace('value', amplitude_space))
+            time.sleep(0.2)  # Allow time for settings to take effect
         except Exception as e:
             self.log('error', f"Error setting amplitude_space to {amplitude_space}: {e}")
 

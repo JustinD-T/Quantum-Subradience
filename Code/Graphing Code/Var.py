@@ -146,7 +146,7 @@ def bin_spec(spec_df, binning_factor=10):
     return binned_ampl, freqs
 
 if __name__ == "__main__":
-    path = r'ExperimentLogs\ExperimentLog_20260202-130123.csv'
+    path = r'ExperimentLogs\ExperimentLog_20260202-123757.csv'
     _, spec = load_data(path)
     bin_spec_df, freqs = bin_spec(spec, binning_factor=5)
     plot_avrg_spectrum(bin_spec_df)
