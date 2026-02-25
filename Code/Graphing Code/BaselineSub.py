@@ -132,7 +132,7 @@ def downsample_data(amps, freqs, coeff):
 
 if __name__ == "__main__":
     # CO
-    path = r'ExperimentLogs\LARGE_CO_RUN.csv'
+    path = r'ExperimentLogs\CO_VERIFICATION_TEST.csv'
     # No Co
     # path = r'ExperimentLogs\ExperimentLog_20260204-135402.csv'
     
@@ -143,7 +143,7 @@ if __name__ == "__main__":
         # amps, freqs = downsample_data(amps, freqs, coeff=2)
 
         # Process both methods
-        local_sig, global_sig = process_and_subtract(amps.iloc[0:150], freqs, sigma=0.5e6, n=25, deg=1)
+        local_sig, global_sig = process_and_subtract(amps.iloc[:100], freqs, sigma=0.5e6, n=25, deg=1)
         
         plot_comparison(freqs, local_sig, global_sig)
     else:
