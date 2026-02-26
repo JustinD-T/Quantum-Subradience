@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 from scipy.signal import savgol_filter
+from mpl_toolkits.mplot3d import Axes3D
 
 def load_experiment_log(path):
     """Parses metadata from comments and spectrum data from CSV."""
@@ -49,6 +50,24 @@ def process_and_subtract(amps, freqs, sigma=1e6, n=200, deg=2):
         subtracted_amps_collector[:, group_idx] = bin_avg_spectrum - bin_baseline
 
     local_subtracted = np.mean(subtracted_amps_collector, axis=1)
+
+    # --- 3D Plot: Subtracted Amplitudes vs Frequency and Bins ---
+
+    # fig = plt.figure(figsize=(12, 8))
+    # ax = fig.add_subplot(111, projection='3d')
+
+    # freq_mesh, bin_mesh = np.meshgrid(freqs, np.arange(num_bins), indexing='ij')
+    
+    # # Apply Savitzky-Golay filter for smooth surface
+    # subtracted_amps_smooth = savgol_filter(subtracted_amps_collector, window_length=51, polyorder=3, axis=0)
+    
+    # ax.plot_surface(bin_mesh, freq_mesh / 1e6, subtracted_amps_smooth, cmap='viridis', alpha=0.8)
+
+    # ax.set_xlabel('Bin Index')
+    # ax.set_ylabel('Frequency (MHz)')
+    # ax.set_zlabel('Power (Watts)')
+    # ax.set_title('Subtracted Amplitudes: Bins vs Frequency (Smoothed)')
+    # plt.show()
 
     # --- 3. Median Background Level vs Time ---
     # bin_baselines = []
@@ -127,24 +146,68 @@ def downsample_data(amps, freqs, coeff):
     amps.columns = range(len(amps.columns))
     freqs = freqs[::coeff]
     return amps, freqs
+
+def plot_multiple_runs(freqs, signals_list, titles_list):
+    """Plot Savitzky-Golay filtered signals from multiple runs for comparison.
+    
+    Args:
+        freqs: Frequency array
+        signals_list: List of signal arrays (local_sig from each run)
+        titles_list: List of titles for each run
+    """
+    center_f = np.mean(freqs)
+    offset_khz = (freqs - center_f) / 1e3
+    
+    num_runs = len(signals_list)
+    fig, axes = plt.subplots(num_runs, 1, figsize=(12, 4 * num_runs))
+    
+    if num_runs == 1:
+        axes = [axes]
+    
+    for idx, (signal, title) in enumerate(zip(signals_list, titles_list)):
+        sg_fit = savgol_filter(signal, window_length=31, polyorder=3)
         
+        axes[idx].plot(offset_khz, sg_fit, color='blue', lw=2)
+        axes[idx].axhline(0, color='red', linestyle='--', alpha=0.5)
+        axes[idx].axvspan(-500, 500, color='orange', alpha=0.1)
+        axes[idx].set_ylabel('Power (Watts)')
+        axes[idx].set_title(title)
+        axes[idx].grid(True, linestyle=':', alpha=0.6)
+    
+    axes[-1].set_xlabel('Frequency Offset (kHz)')
+    plt.tight_layout()
+    plt.show()
 
 
 if __name__ == "__main__":
-    # CO
-    path = r'ExperimentLogs\CO_VERIFICATION_TEST.csv'
+    # CO Test
+    path1 = r'ExperimentLogs\LARGE_CO_RUN.csv'
+    # CO Verification Test
+    path2 = r'ExperimentLogs\CO_VERIFICATION_TEST.csv'
     # No Co
-    # path = r'ExperimentLogs\ExperimentLog_20260204-135402.csv'
+    path3 = r'ExperimentLogs\NO_CO_TEST.csv'
     
-    if os.path.exists(path):
-        meta, amps, freqs, aux = load_experiment_log(path)
+    titles = ['Large CO Run', 'CO Verification Test', 'No CO Run']
 
-        # Downsample: average adjacent frequency bins
-        # amps, freqs = downsample_data(amps, freqs, coeff=2)
+    meta1, amps1, freqs1, aux1 = load_experiment_log(path1)
+    meta2, amps2, freqs2, aux2 = load_experiment_log(path2)
+    meta3, amps3, freqs3, aux3 = load_experiment_log(path3)
 
-        # Process both methods
-        local_sig, global_sig = process_and_subtract(amps.iloc[:100], freqs, sigma=0.5e6, n=25, deg=1)
+    local_sig1, global_sig1 = process_and_subtract(amps1.iloc[:250], freqs1, sigma=0.5e6, n=25, deg=1)
+    local_sig2, global_sig2 = process_and_subtract(amps2.iloc[:250], freqs2, sigma=0.5e6, n=25, deg=1)
+    local_sig3, global_sig3 = process_and_subtract(amps3.iloc[:250], freqs3, sigma=0.5e6, n=25, deg=1)
+
+    plot_multiple_runs(freqs1, [local_sig1, local_sig2, local_sig3], titles)
+
+    # if os.path.exists(path1):
+    #     meta, amps, freqs, aux = load_experiment_log(path1)
+
+    #     # Downsample: average adjacent frequency bins
+    #     # amps, freqs = downsample_data(amps, freqs, coeff=2)
+
+    #     # Process both methods
+    #     local_sig, global_sig = process_and_subtract(amps.iloc[:150], freqs, sigma=0.5e6, n=25, deg=1)
         
-        plot_comparison(freqs, local_sig, global_sig)
-    else:
-        print(f"File not found.")
+    #     plot_comparison(freqs, local_sig, global_sig)
+    # else:
+    #     print(f"File not found.")
