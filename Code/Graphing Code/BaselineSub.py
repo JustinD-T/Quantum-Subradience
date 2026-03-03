@@ -179,6 +179,39 @@ def plot_multiple_runs(freqs, signals_list, titles_list):
     plt.show()
 
 
+def bin_and_sum(freqs, amps, bin_factor):
+    """Reduce data by binning frequencies (mean) and summing amplitudes.
+    
+    Args:
+        freqs: Frequency array
+        amps: Amplitude DataFrame or array
+        bin_factor: Number of bins to join into one
+    
+    Returns:
+        binned_freqs: Reduced frequency array
+        binned_amps: Reduced amplitude DataFrame with summed values
+    """
+    num_bins = len(freqs) // bin_factor
+    
+    binned_freqs = []
+    binned_amps_list = []
+    
+    for i in range(num_bins):
+        start_idx = i * bin_factor
+        end_idx = (i + 1) * bin_factor
+        
+        # Mean of frequencies in bin
+        binned_freqs.append(np.mean(freqs[start_idx:end_idx]))
+        
+        # Sum of amplitudes in bin
+        binned_amps_list.append(amps.iloc[:, start_idx:end_idx].sum(axis=1))
+    
+    binned_freqs = np.array(binned_freqs)
+    binned_amps = pd.concat(binned_amps_list, axis=1)
+    binned_amps.columns = range(len(binned_amps.columns))
+    
+    return binned_freqs, binned_amps
+
 if __name__ == "__main__":
     # CO Test
     path1 = r'ExperimentLogs\LARGE_CO_RUN.csv'
@@ -193,9 +226,9 @@ if __name__ == "__main__":
     meta2, amps2, freqs2, aux2 = load_experiment_log(path2)
     meta3, amps3, freqs3, aux3 = load_experiment_log(path3)
 
-    local_sig1, global_sig1 = process_and_subtract(amps1.iloc[:250], freqs1, sigma=0.5e6, n=25, deg=1)
-    local_sig2, global_sig2 = process_and_subtract(amps2.iloc[:250], freqs2, sigma=0.5e6, n=25, deg=1)
-    local_sig3, global_sig3 = process_and_subtract(amps3.iloc[:250], freqs3, sigma=0.5e6, n=25, deg=1)
+    local_sig1, global_sig1 = process_and_subtract(amps1.iloc[:250], freqs1, sigma=1e6, n=2, deg=2)
+    local_sig2, global_sig2 = process_and_subtract(amps2.iloc[:250], freqs2, sigma=1e6, n=2, deg=2)
+    local_sig3, global_sig3 = process_and_subtract(amps3.iloc[:250], freqs3, sigma=1e6, n=2, deg=2)
 
     plot_multiple_runs(freqs1, [local_sig1, local_sig2, local_sig3], titles)
 
