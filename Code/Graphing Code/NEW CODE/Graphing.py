@@ -1,10 +1,20 @@
-from Utilities import loadData, binData, subtractBaseline, computeNoiseIntegral
+import argparse
+import time
+
+from Utilities import loadData, binData, subtractBaseline, computeNoiseIntegral, cleanData
+
 from matplotlib import pyplot as plt
 import numpy as np
-import argparse
+from scipy.signal import gauss_spline
+
+global TEST_BOOL
+TEST_BOOL = True
 
 def plotNoiseVsTimeAndMeasurement(powers, spectral_axis, meta, sigma, save_fig=False):
-    # Metadata parsing: convert ms to s
+
+    if TEST_BOOL:
+        start = time.time()
+
     sweep_time = float(meta.get('Sweep Time (ms)', 0))  
     n_measurements = powers.shape[1]
     time_axis = np.arange(n_measurements) * sweep_time
@@ -15,14 +25,15 @@ def plotNoiseVsTimeAndMeasurement(powers, spectral_axis, meta, sigma, save_fig=F
         sigma=sigma
     )
 
+    std_integral = np.sqrt(variance_integral)
+
     fig, ax1 = plt.subplots(figsize=(12, 6), facecolor='black')
     ax1.set_facecolor('black')
 
     meas_indices = np.arange(1, n_measurements + 1)
-    ax1.plot(meas_indices, variance_integral, color='cyan', linewidth=2, label='Variance')
-    
+    ax1.plot(meas_indices, std_integral, color='magenta', linewidth=2, label='Std Dev')
     ax1.set_xlabel('Measurement Number', color='white', fontsize=12)
-    ax1.set_ylabel('Variance Integral (W)', color='cyan', fontsize=12)
+    ax1.set_ylabel('Std Dev Integral (W)', color='cyan', fontsize=12)
     ax1.set_yscale('log')
     ax1.set_xscale('log')
     ax1.tick_params(axis='both', colors='white')
@@ -35,6 +46,7 @@ def plotNoiseVsTimeAndMeasurement(powers, spectral_axis, meta, sigma, save_fig=F
 
     # Top axis for Time
     ax1_top = ax1.twiny()
+    ax1_top.set_xscale('log')
     ax1_top.set_xlim(ax1.get_xlim())
     
     def get_time_label(x):
@@ -55,31 +67,56 @@ def plotNoiseVsTimeAndMeasurement(powers, spectral_axis, meta, sigma, save_fig=F
     ax2.tick_params(axis='y', labelcolor='yellow')
     ax2.spines['right'].set_color('yellow')
 
+    # Plot 1/time decay for reference
+    white_noise_line = std_integral[1] * time_axis[1] * (time_axis[1:])**(-1)
+    ax1.plot(meas_indices[1:], white_noise_line, color='cyan', linestyle='--', linewidth=1.5, label=r'$\propto 1/t$')
+    ax1.legend(loc='upper left', facecolor='black', labelcolor='white')
+
+
     plt.title('Noise Variance vs Measurement Number and Time', color='white', fontsize=14, pad=20)
     fig.tight_layout()
+
+    if TEST_BOOL:
+        print(f"Noise vs Time plot generation took {time.time() - start:.4f} seconds")
 
     if save_fig:
         plt.savefig('noise_vs_time_measurement.png', facecolor='black', dpi=300)
         plt.close()
     else:
         plt.show()
+    plt.close()
 
 def plotSignal(powers, spectral_axis, title, sigma, central_freq, init_CO_level, sum_data=True, save_fig=False):
+
+    if TEST_BOOL:
+        start = time.time()
+
     signal = powers.sum(axis=1) if sum_data else powers.mean(axis=1)
+
+    # normalize spectral axis
+    spectral_axis = spectral_axis - central_freq
 
     fig, ax = plt.subplots(figsize=(10, 6), facecolor='black')
     ax.set_facecolor('black')
     ax.plot(spectral_axis, signal, color='white', linewidth=1)
+
+    # Fit and plot Gaussian spline
+    # spline_fit = gauss_spline(signal, n=3)
+    # ax.plot(spectral_axis, spline_fit, color='red', linewidth=2, alpha=0.4, label='Gaussian Spline Fit')
     
-    ax.axvspan(central_freq - sigma, central_freq + sigma, color='green', alpha=0.3, label=r'$\pm \sigma$ Region')
+    ax.axvspan(-sigma, +sigma, color='green', alpha=0.3, label=r'$\pm \sigma$ Region')
     
-    ax.set_xlabel('Frequency (Hz)', color='white')
+    ax.set_xlabel('Frequency (MHz)', color='white')
     ax.set_ylabel('Power (W)', color='white')
     ax.set_title(f'{title}\nInitial CO: {init_CO_level}', color='white')
     
     for spine in ax.spines.values(): spine.set_color('white')
     ax.tick_params(colors='white')
     ax.legend(facecolor='black', labelcolor='white')
+
+    if TEST_BOOL:
+        print(f"Signal plot generation took {time.time() - start:.4f} seconds")
+
     
     fig.tight_layout()
     if save_fig:
@@ -87,35 +124,76 @@ def plotSignal(powers, spectral_axis, title, sigma, central_freq, init_CO_level,
         plt.close()
     else:
         plt.show()
+    plt.close()
+
+def plotPeakVsTime(powers, freqs, center_freq, sigma=500e3, save_fig=False):
+    cumsum = np.cumsum(powers, axis=1)
+    rol_avrg = cumsum / np.arange(1, powers.shape[1] + 1)
+    peak_roll_avrg = rol_avrg[(freqs >= center_freq - sigma/2) & (freqs <= center_freq + sigma/2), :]
+    peak_indices = np.argmax(peak_roll_avrg, axis=0) + np.where((freqs >= center_freq - sigma/2) & (freqs <= center_freq + sigma/2))[0][0]
+    std = np.std(rol_avrg[((freqs <= center_freq - sigma/2) | (freqs >= center_freq + sigma/2)), :], axis=0)
+    mean_powers = np.mean(rol_avrg[((freqs <= center_freq - sigma/2) | (freqs >= center_freq + sigma/2)), :], axis=0)
+    power_ratio = (rol_avrg[peak_indices, np.arange(powers.shape[1])])[100:]
+    meas_axis = np.arange(1, powers.shape[1] + 1)[100:]
+    
+    fig, ax = plt.subplots(figsize=(10, 6), facecolor='black')
+    ax.set_facecolor('black')
+    ax.fill_between(meas_axis, mean_powers[100:] - 3*std[100:], mean_powers[100:] + 3*std[100:], alpha=0.2, color='blue', label='±3σ Baseline Error')
+    ax.fill_between(meas_axis, mean_powers[100:], alpha=0.4, label='Mean Power', color='blue')
+    ax.plot(meas_axis, mean_powers[100:], 'b-', linewidth=2)
+    ax.fill_between(meas_axis, power_ratio, alpha=0.4, label='Peak/Mean Power Ratio', color='green')
+    ax.plot(meas_axis, power_ratio, 'g-', linewidth=2)
+    # ax.axhline(1, color='red', linestyle='--', label='Ratio = 1')
+    ax.set_xlabel('Measurement Number', color='white')
+    ax.set_ylabel('Power (W)', color='white')
+    # ax.set_xscale('log')
+    ax.set_title('Peak to Mean Power Ratio vs Measurement Number', color='white')
+    ax.tick_params(colors='white')
+    for spine in ax.spines.values(): spine.set_color('white')
+    ax.legend(facecolor='black', labelcolor='white')
+    ax.grid(True, alpha=0.2, color='white')
+    
+    fig.tight_layout()
+    if save_fig:
+        plt.savefig('peak_vs_time.png', facecolor='black', dpi=300)
+    plt.close()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--path', type=str, required=True)
-    parser.add_argument('--sigma', type=float, default=500e3)
+    parser.add_argument('--sigma', type=float, default=1e6)
     parser.add_argument('--save_fig', action='store_true')
     parser.add_argument('--deg', type=int, default=2)
-    parser.add_argument('--n_sub', type=int, default=6)
+    parser.add_argument('--n_sub', type=int, default=2)
     parser.add_argument('--sub', action='store_true')
     parser.add_argument('--bin', action='store_true')
-    parser.add_argument('--n_bins', type=int, default=101)
+    parser.add_argument('--bin_factor', type=int, default=50)
     parser.add_argument('--plot_noise', action='store_true')
     parser.add_argument('--plot_signal', action='store_true')
     parser.add_argument('--signal_sum', action='store_true')
     parser.add_argument('--defs', action='store_true')
+    parser.add_argument('--clean', action='store_true', help='Run cleaning routine to remove outlier data')
 
     args = parser.parse_args()
     if args.defs:
         args.save_fig, args.sub, args.bin = True, True, True
-        args.plot_noise, args.plot_signal, args.signal_sum = True, True, False
+        args.plot_noise, args.plot_signal, args.signal_sum, args.clean = True, True, False, True
 
     powers, freqs, meta = loadData(args.path)
+    # powers = powers[:, :200]
+
+    if args.clean:
+        powers, _ = cleanData(powers, freqs, float(meta['Center Frequency (Hz)']), args.sigma)
 
     if args.bin:
-        powers, freqs = binData(powers, freqs, n=args.n_bins)
+        powers, freqs = binData(powers, freqs, binning_factor=args.bin_factor)
 
     if args.sub:
         powers = subtractBaseline(powers, freqs, float(meta['Center Frequency (Hz)']), args.sigma, args.deg, args.n_sub)
     
+    plotPeakVsTime(powers, freqs, float(meta['Center Frequency (Hz)']), args.sigma, args.save_fig)
+
     if args.plot_noise:
         plotNoiseVsTimeAndMeasurement(powers, freqs, meta, args.sigma, args.save_fig)
     
