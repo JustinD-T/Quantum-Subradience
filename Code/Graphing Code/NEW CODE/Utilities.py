@@ -141,9 +141,12 @@ def cleanData(powers, spectral_axis, freq_center, sigma):
 
     var_diffs = np.diff(variance_integral)
 
-    # Reject data if variance integral increases 
+    # # Reject data if variance integral increases 
     outlier_indices = np.where(var_diffs > 0)[0] + 1  # +1 to correct for the diff offset
 
+    # outlier_indices, mean_powers = meanPowerOutlierDet(powers, spectral_axis, freq_center, sigma)
+    # plt.scatter(np.arange(len(mean_powers)), mean_powers, label='Mean Power per Measurement', color='orange')
+    # plt.show()
     # create a mask to filter out outliers
     mask = np.ones(powers.shape[1], dtype=bool)
     mask[outlier_indices] = False
@@ -153,6 +156,30 @@ def cleanData(powers, spectral_axis, freq_center, sigma):
 
     if TEST_BOOL:
         print(f"Data cleaning took {time.time() - start:.4f} seconds")
+
+        # Plot one random rejected measurement vs the average of all measurements
+        if len(outlier_indices) > 0:
+            random_outlier_index = np.random.choice(outlier_indices)
+            # random_outlier_index = np.random.choice(np.where(mask)[0])
+            
+            plt.figure(figsize=(12, 6))
+            
+            # Plot the randomly selected outlier measurement
+            plt.plot(spectral_axis, powers[:, random_outlier_index], label=f'Rejected Measurement (Index: {random_outlier_index})', color='red', alpha=0.8)
+            
+            # Plot the average of all measurements
+            average_power = powers.mean(axis=1)
+            plt.plot(spectral_axis, average_power, label='Average of All Measurements', color='blue', linestyle='--')
+            
+            plt.title('Comparison of a Rejected Measurement and the Overall Average')
+            plt.xlabel('Frequency (Hz)')
+            plt.ylabel('Power (W)')
+            plt.legend()
+            plt.grid(True)
+            # plt.yscale('log')
+            plt.show()
+        else:
+            print("No outliers were rejected, skipping outlier plot.")
 
         # Plot variance integral with masked regions for debugging
         # plt.figure(figsize=(10, 5))
@@ -248,26 +275,61 @@ def subtractBaseline(powers, spectral_axis, freq_center, sigma, deg, n):
     if TEST_BOOL:
         print(f"Baseline subtraction took {time.time() - start:.4f} seconds")
 
-        # Plot three random measurements with their baselines for debugging
-        plt.figure(figsize=(12, 6))
-        for _ in range(3):
-            idx = np.random.randint(n//2, powers.shape[1] - n//2)
-            # Compute baseline for this measurement
-            bin_avrg_power = powers[:,idx-n//2:idx+n//2].mean(axis=1)
-            masked_bin_avrg_power = bin_avrg_power[(spectral_axis < (freq_center_actual - sigma)) | (spectral_axis > (freq_center_actual + sigma))]
-            masked_freqs = spectral_axis[(spectral_axis < (freq_center_actual - sigma)) | (spectral_axis > (freq_center_actual + sigma))]
-            coeffs = np.polyfit(masked_freqs, masked_bin_avrg_power, deg=deg)
-            baseline = np.polyval(coeffs, spectral_axis)
+        # --- PLOT: three random measurements with their baselines for debugging
+        # plt.figure(figsize=(12, 6))
+        # for idx in [270,271]:
+        #     # idx = np.random.randint(n//2, powers.shape[1] - n//2)
+        #     # idx = 
+        #     # Compute baseline for this measurement
+        #     bin_avrg_power = powers[:,idx-n//2:idx+n//2].mean(axis=1)
+        #     masked_bin_avrg_power = bin_avrg_power[(spectral_axis < (freq_center_actual - sigma)) | (spectral_axis > (freq_center_actual + sigma))]
+        #     masked_freqs = spectral_axis[(spectral_axis < (freq_center_actual - sigma)) | (spectral_axis > (freq_center_actual + sigma))]
+        #     coeffs = np.polyfit(masked_freqs, masked_bin_avrg_power, deg=deg)
+        #     baseline = np.polyval(coeffs, spectral_axis)
             
-            plt.plot(spectral_axis, powers[:, idx], label=f'Original Measurement {idx}')
-            plt.plot(spectral_axis, baseline, label=f'Baseline {idx}', alpha=0.6)
-            plt.plot(spectral_axis, new_powers[:, idx-n//2], label=f'Baseline Subtracted Measurement {idx}', alpha=0.7)
-        plt.xlabel('Frequency (Hz)')
-        plt.ylabel('Power (W)')
-        plt.title('Baseline Subtraction Example')
+        #     plt.plot(spectral_axis, powers[:, idx], label=f'Original Measurement {idx}')
+        #     # plt.plot(spectral_axis, baseline, label=f'Baseline {idx}', alpha=0.6)
+        #     plt.plot(spectral_axis, new_powers[:, idx-n//2], label=f'Baseline Subtracted Measurement {idx}', alpha=0.7)
+        # plt.xlabel('Frequency (Hz)')
+        # plt.ylabel('Power (W)')
+        # plt.title('Baseline Subtraction Example')
+        # # plt.legend()
+        # plt.grid(True)
+        # plt.show()
+
+        # --- PLOT: mean power over time, per measurement
+        mean_pows = np.zeros(powers.shape[1])
+        for i in range(powers.shape[1]):
+            mean_pows[i] = np.max(powers[:,i])
+        
+        plt.figure(figsize=(10, 5))
+        plt.scatter(np.arange(len(mean_pows)), mean_pows, label='Mean Power per Measurement', color='orange')
+        plt.xlabel('Measurement Index')
+        plt.ylabel('Mean Power (W)')
+        plt.yscale('log')
+        plt.title('Mean Power per Measurement Before Baseline Subtraction')
         plt.legend()
         plt.grid(True)
         plt.show()
+
+        # # --- PLOT: baseline-subtracted mean power over time, per measurement
+        # mean_pows_subtracted = np.zeros(new_powers.shape[1])
+        # for i in range(new_powers.shape[1]):
+        #     mean_pows_subtracted[i] = np.mean(new_powers[:,i])
+        # std = mean_pows_subtracted.std()
+        # mean = mean_pows_subtracted.mean()
+        # # Plot mean power with ±3σ bounds
+        # plt.figure(figsize=(10, 5))
+        # plt.fill_between(np.arange(len(mean_pows_subtracted)), mean - 2*std, mean + 2*std, alpha=0.2, color='red', label='±3σ Bounds')
+        # plt.scatter(np.arange(len(mean_pows_subtracted)), mean_pows_subtracted, label='Mean Power per Measurement (Baseline Subtracted)', color='cyan')
+        # plt.xlabel('Measurement Index')
+        # plt.ylabel('Mean Power (W)')
+        # plt.title('Mean Power per Measurement After Baseline Subtraction')
+        # plt.legend()
+        # plt.grid(True)
+        # plt.show()
+
+
     
     return new_powers
 
@@ -311,9 +373,42 @@ def computeNoiseIntegral(powers, spectral_axis, freq_center, sigma):
         print(f"Noise integral computation took {time.time() - start:.4f} seconds")
         print(f'Log(abs)-lin correlation between variance and mean integrals: {np.corrcoef((np.diff(variance_integral[1:])), (np.diff(mean_power_levels[1:])))[0, 1]:.4f}')
 
-        plt.scatter(variance_integral[1:], mean_power_levels[1:], label='Variance vs Mean Integral', color='purple', alpha=0.7)
-        plt.show()
+        # plt.scatter(variance_integral[1:], mean_power_levels[1:], label='Variance vs Mean Integral', color='purple', alpha=0.7)
+        # plt.show()
     
     return variance_integral, mean_power_levels
 
 
+def meanPowerOutlierDet(powers, spectral_axis, freq_center, sigma):
+    """
+    Identifies outliers in the mean power across measurements using a rolling standard deviation approach.
+
+    Args:
+        powers (np.array): 2D array of power readings (frequencies x measurements).
+        spectral_axis (np.array): 1D array of frequencies in Hz.
+        freq_center (float): Central frequency to exclude from fitting.
+        sigma (float): Width around the central frequency to exclude in fitting (+/- sigma).
+
+    Returns:
+        outlier_indices (np.array): Indices of measurements identified as outliers based on mean power deviations.
+    """
+
+    if TEST_BOOL:
+        start = time.time()
+
+    powers = subtractBaseline(powers, spectral_axis, freq_center, sigma, deg=3, n=2)
+
+    # Mask out central region
+    mask = (spectral_axis < (freq_center - sigma)) | (spectral_axis > (freq_center + sigma))
+    powers = powers[mask, :]
+
+    # Compute mean power for each measurement
+    mean_powers = np.mean(powers, axis=0)
+
+    std_powers = np.std(mean_powers)
+
+    # Identify outliers as measurements where mean power deviates more than 3 standard deviations from the overall mean
+    overall_mean = np.mean(mean_powers)
+    outlier_indices = np.where(np.abs(mean_powers - overall_mean) > 2 * std_powers)[0]
+
+    return outlier_indices, mean_powers
