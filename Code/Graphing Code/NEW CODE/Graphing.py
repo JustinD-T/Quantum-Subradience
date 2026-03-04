@@ -68,8 +68,8 @@ def plotNoiseVsTimeAndMeasurement(powers, spectral_axis, meta, sigma, save_fig=F
     ax2.spines['right'].set_color('yellow')
 
     # Plot 1/time decay for reference
-    white_noise_line = std_integral[1] * time_axis[1] * (time_axis[1:])**(-1)
-    ax1.plot(meas_indices[1:], white_noise_line, color='cyan', linestyle='--', linewidth=1.5, label=r'$\propto 1/t$')
+    white_noise_line = std_integral[1] * time_axis[1] * (time_axis[1:])**(-0.5)
+    ax1.plot(meas_indices[1:], white_noise_line, color='cyan', linestyle='--', linewidth=1.5, label=r'$\propto 1/t^{0.5}$')
     ax1.legend(loc='upper left', facecolor='black', labelcolor='white')
 
 
@@ -162,13 +162,13 @@ def plotPeakVsTime(powers, freqs, center_freq, sigma=500e3, save_fig=False):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--path', type=str, required=True)
-    parser.add_argument('--sigma', type=float, default=1e6)
+    parser.add_argument('--sigma', type=float, default=3.5e6)
     parser.add_argument('--save_fig', action='store_true')
-    parser.add_argument('--deg', type=int, default=2)
+    parser.add_argument('--deg', type=int, default=3)
     parser.add_argument('--n_sub', type=int, default=2)
     parser.add_argument('--sub', action='store_true')
     parser.add_argument('--bin', action='store_true')
-    parser.add_argument('--bin_factor', type=int, default=50)
+    parser.add_argument('--bin_factor', type=int, default=120)
     parser.add_argument('--plot_noise', action='store_true')
     parser.add_argument('--plot_signal', action='store_true')
     parser.add_argument('--signal_sum', action='store_true')
@@ -181,17 +181,20 @@ if __name__ == "__main__":
         args.plot_noise, args.plot_signal, args.signal_sum, args.clean = True, True, False, True
 
     powers, freqs, meta = loadData(args.path)
-    # powers = powers[:, :200]
+    # powers = powers[:, :900]
 
-    if args.clean:
-        powers, _ = cleanData(powers, freqs, float(meta['Center Frequency (Hz)']), args.sigma)
 
     if args.bin:
         powers, freqs = binData(powers, freqs, binning_factor=args.bin_factor)
 
     if args.sub:
         powers = subtractBaseline(powers, freqs, float(meta['Center Frequency (Hz)']), args.sigma, args.deg, args.n_sub)
-    
+# 281=-20
+
+    if args.clean:
+        powers, _ = cleanData(powers, freqs, float(meta['Center Frequency (Hz)']), args.sigma)
+
+
     plotPeakVsTime(powers, freqs, float(meta['Center Frequency (Hz)']), args.sigma, args.save_fig)
 
     if args.plot_noise:
