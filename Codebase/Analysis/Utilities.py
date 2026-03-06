@@ -13,7 +13,7 @@ TEST_BOOL = True
 # Data Preperation Utilities
 def loadData(path):
     """
-    Given a path to an experiment log, return metadata, powers, and spectral axis.
+    Given a path to an experiment log, return metadata, powers, spectral axis, and pressure.
     
     Args:
         path (str): Path to the experiment log file (CSV with comment metadata).
@@ -22,9 +22,9 @@ def loadData(path):
         metadata (dict): Dictionary of configuration parameters.
         powers (np.array): 2D array of power readings (frequencies x measurements).
         spectral_axis (np.array): 1D array of frequencies in Hz.
+        pressure (np.array): 1D array of pressure readings for each measurement.
     """
     metadata = {}
-    header_end_line = 0
 
     if TEST_BOOL:
         start = time.time()
@@ -34,7 +34,6 @@ def loadData(path):
         with open(path, 'r') as f:
             for i, line in enumerate(f):
                 if line.startswith('#'):
-                    header_end_line = i
                     # Clean up the line and split by first colon
                     content = line.lstrip('#').strip()
                     if ':' in content:
@@ -44,25 +43,25 @@ def loadData(path):
                     break
         
         # 2. Load Data using pandas
-        # We skip the specific number of comment lines and use the first non-comment line as header
         df = pd.read_csv(path, comment='#')
         
         # 3. Extract Spectral Axis (frequencies)
-        # Frequencies start after 'Effective Integration (%)'
-        # The format is "2497500000.0 Hz"
         freq_columns = [col for col in df.columns if 'Hz' in col]
         spectral_axis = np.array([float(col.split(' ')[0]) for col in freq_columns])
         
         # 4. Extract Power values
         powers = df[freq_columns].to_numpy().transpose()  # Transpose to get frequencies x measurements
 
+        # 5. Extract Pressure values
+        pressure = df['Pressure'].to_numpy()
+
         # Save as numpy arrays for faster processing
-        # Create folder with the name of the file (without extension)
         folder_name = path.replace('.csv', '_pickled_data').split('/')[-1]
         os.makedirs(folder_name, exist_ok=True)
         
         np.save(os.path.join(folder_name, 'powers.npy'), powers)
         np.save(os.path.join(folder_name, 'freqs.npy'), spectral_axis)
+        np.save(os.path.join(folder_name, 'pressure.npy'), pressure)
         with open(os.path.join(folder_name, 'metadata.json'), 'w') as f:
             json.dump(metadata, f, indent=4)
 
@@ -72,13 +71,14 @@ def loadData(path):
         # Load from pre-saved numpy arrays
         powers = np.load(os.path.join(path, 'powers.npy'))
         spectral_axis = np.load(os.path.join(path, 'freqs.npy'))
+        pressure = np.load(os.path.join(path, 'pressure.npy'))
         with open(os.path.join(path, 'metadata.json'), 'r') as f:
             metadata = json.load(f)
     
     if TEST_BOOL:
         print(f"Data loading and parsing took {time.time() - start:.4f} seconds")
 
-    return powers, spectral_axis, metadata   
+    return powers, spectral_axis, pressure, metadata
 
 def binData(powers, spectral_axis, n=10):
     """
@@ -157,7 +157,7 @@ def truncData(powers, n):
     return powers[:,:n]
 
 # Data Processing Utilities
-def subtractBaseline(powers, spectral_axis, freq_center, sigma, deg, n):
+def subtractBaseline(powers, spectral_axis, freq_center, sigma, deg, n, ret_coeffs=False):
     """
     Performs polynomial baseline fitting on the power excluding +/- the central frequency, then subtracts
     from the entire measurement. Also performs local fitting on rolling averages of n bins (excluding start/ends)
@@ -176,6 +176,8 @@ def subtractBaseline(powers, spectral_axis, freq_center, sigma, deg, n):
 
     new_powers = np.zeros_like(powers)
 
+    coeffs_arr = np.zeros((powers.shape[1], deg + 1))
+
     # if n is 1 or 0, just do a single global fit to each measurement
     if n <= 1:
         for i in range(powers.shape[1]):
@@ -185,12 +187,17 @@ def subtractBaseline(powers, spectral_axis, freq_center, sigma, deg, n):
 
             # Fit polynomial to masked data
             coeffs = np.polyfit(masked_freqs, masked_power, deg=deg)
+            coeffs_arr[i,:] = coeffs
+
             baseline = np.polyval(coeffs, spectral_axis)
 
             # Subtract baseline from original power data
             new_powers[:,i] = powers[:,i] - baseline
         
-        return new_powers
+        if ret_coeffs:
+            return new_powers, coeffs_arr
+        else:
+            return new_powers
 
     # For n > 1, perform local fitting on rolling averages of n bins (excluding start/ends)
     else:
@@ -211,6 +218,7 @@ def subtractBaseline(powers, spectral_axis, freq_center, sigma, deg, n):
 
             # Fit polynomial to masked data
             coeffs = np.polyfit(masked_freqs, masked_bin_avrg_power, deg=deg)
+            coeffs_arr[i,:] = coeffs
             baseline = np.polyval(coeffs, spectral_axis)
 
             # Subtract baseline from original power data
@@ -221,8 +229,13 @@ def subtractBaseline(powers, spectral_axis, freq_center, sigma, deg, n):
 
     if TEST_BOOL:
         print(f"Baseline subtraction took {time.time() - start:.4f} seconds")
-    
-    return new_powers
+
+    if ret_coeffs:
+        return new_powers, coeffs_arr
+    else:
+        return new_powers
+
+
 
 def computeNoiseIntegral(powers, spectral_axis, freq_center, sigma):
     """
@@ -362,3 +375,17 @@ def powerMedDeviationOutlierDet(powers, spectral_axis, sigma, center_freq, deg, 
     outlier_indices = np.where(err > np.median(err) + tresh * std_err)[0]
 
     return outlier_indices
+
+def pressureDecayCurve(pressures, sweep_time):
+    # Fits and saves a pressure decay curve fit for extrapolation
+    time = np.linspace(sweep_time, (pressures.shape[0]+1)*sweep_time, pressures.shape[0])
+
+    log_time = np.log(time)
+    log_pressure = np.log(pressures)
+
+    coeffs = np.polyfit(log_time, log_pressure, deg=1)
+
+    def pressure_fit(t):
+        return np.exp(coeffs[1]) * t**coeffs[0]
+
+    return pressure_fit
