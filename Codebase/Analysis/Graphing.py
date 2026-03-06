@@ -177,15 +177,11 @@ if __name__ == "__main__":
         args.save_fig, args.sub, args.bin = True, True, True
         args.plot_noise, args.plot_signal, args.signal_sum, args.clean = True, True, False, True
 
-    powers, freqs, meta = loadData(args.path)
+    powers, freqs, pressures, meta = loadData(args.path)
 
     # --- TEST: Generate synthetic Gaussian noise for testing
-    # n_measurements = 5587
-    # n_points = 6667
-    # freq_range = 20e6
-    # freqs = np.linspace(-freq_range/2, freq_range/2, n_points) + 2.5e9
-    # powers = np.random.normal(0, 1, (n_points, n_measurements))
-    # powers, freqs = powers_test, freqs_test
+    from SignalSim import getSimulatedData
+    powers, freqs = getSimulatedData(powers, freqs, pressures, meta, sim_co=True)
 
     # --- TEST: offset center
     # meta['Center Frequency (Hz)'] = float(meta['Center Frequency (Hz)']) + 2.5e6
@@ -200,10 +196,6 @@ if __name__ == "__main__":
 
     if args.sub:
         powers = subtractBaseline(powers, freqs, float(meta['Center Frequency (Hz)']), args.sigma, args.deg, args.n_sub)
-
-    # mask = (freqs < float(meta['Center Frequency (Hz)']) + args.sigma) | (freqs > float(meta['Center Frequency (Hz)']) + args.sigma)
-    # plt.scatter(np.max(powers[mask, :], axis=0) - np.median(powers[mask, :], axis=0), np.arange(powers.shape[1]), s=1)
-    # plt.show()
 
     if args.bin:
         powers, freqs = binData(powers, freqs, n=args.bin_factor)
