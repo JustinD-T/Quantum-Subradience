@@ -1,5 +1,7 @@
 import argparse
 import time
+from pathlib import Path
+from datetime import datetime
 
 from Utilities import loadData, binData, subtractBaseline, computeNoiseIntegral, cleanData, truncData
 
@@ -159,9 +161,9 @@ def plotPeakVsTime(powers, freqs, center_freq, sigma=500e3, save_fig=False):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--path', type=str, required=True)
-    parser.add_argument('--sigma', type=float, default=1e6)
+    parser.add_argument('--sigma', type=float, default=1.5e6)
     parser.add_argument('--save_fig', action='store_true')
-    parser.add_argument('--deg', type=int, default=1)
+    parser.add_argument('--deg', type=int, default=3)
     parser.add_argument('--n_sub', type=int, default=1)
     parser.add_argument('--sub', action='store_true')
     parser.add_argument('--bin', action='store_true')
@@ -179,20 +181,49 @@ if __name__ == "__main__":
 
     powers, freqs, pressures, meta = loadData(args.path)
 
+    # --- TESTING FEATURES ---
+    SIM_DATA = True
+    OFFSET_CENTER = False
+    TRUNCATE_SIGNAL = False
+    BRUTE_FORCE_CLEAN = True
+
     # --- TEST: Generate synthetic Gaussian noise for testing
-    from SignalSim import getSimulatedData
-    powers, freqs = getSimulatedData(powers, freqs, pressures, meta, sim_co=True)
+    if SIM_DATA:
+        from SignalSim import getSimulatedData
+        SIM_SIGNAL = input('TEST: SIMULATE CO SIGNAL? (y/n): ').lower() == 'y'
+        powers, freqs = getSimulatedData(powers, freqs, pressures, meta, sim_co=SIM_SIGNAL)
 
     # --- TEST: offset center
-    # meta['Center Frequency (Hz)'] = float(meta['Center Frequency (Hz)']) + 2.5e6
+    if OFFSET_CENTER:
+        offset = input('TEST: input center frequency offset in MHz: ')
+        meta['Center Frequency (Hz)'] = float(meta['Center Frequency (Hz)']) + float(offset) * 1e6
 
-    # --- TEST: Truncate to the first n measurements
-    # powers = truncData(powers, n=350)
-
+    if TRUNCATE_SIGNAL:
+        # --- TEST: Truncate to the first n measurements
+        n = input('TEST: Input Data Truncation End Index: ')
+        powers = truncData(powers, n=int(n))
+    
+    if BRUTE_FORCE_CLEAN:
+        cleaning_itterations = int(input('TEST: Input number of cleaning iterations; or \'0\' to run continously until rejection rate is 0: '))
+        
+        # recursive clean:
+        if cleaning_itterations < 0:
+            for i in range(cleaning_itterations):
+                print(f"Cleaning iteration {i+1}/{cleaning_itterations}...", end='\r')
+                powers, _ = cleanData(powers, freqs, float(meta['Center Frequency (Hz)']), args.sigma, deg=args.deg, n_sub=args.n_sub)
+        else:
+            while True:
+                print(f"Cleaning iteration {cleaning_itterations+1}...", end='\r')
+                powers, mask = cleanData(powers, freqs, float(meta['Center Frequency (Hz)']), args.sigma, deg=args.deg, n_sub=args.n_sub)
+                cleaning_itterations += 1
+                if mask.all():
+                    break
+        print("Data cleaning complete. Final shape:", powers.shape)
     # --- Preprocessing ---
 
     if args.clean:
-        powers, _ = cleanData(powers, freqs, float(meta['Center Frequency (Hz)']), args.sigma, deg=args.deg, n_sub=args.n_sub)
+        if not BRUTE_FORCE_CLEAN:
+            powers, _ = cleanData(powers, freqs, float(meta['Center Frequency (Hz)']), args.sigma, deg=args.deg, n_sub=args.n_sub)
 
     if args.sub:
         powers = subtractBaseline(powers, freqs, float(meta['Center Frequency (Hz)']), args.sigma, args.deg, args.n_sub)
@@ -207,3 +238,64 @@ if __name__ == "__main__":
     
     if args.plot_signal:
         plotSignal(powers, freqs, meta['Experiment Description'], args.sigma, float(meta['Center Frequency (Hz)']), meta['initial_CO_concentration (ppm)'], args.signal_sum, args.save_fig)
+    
+    if args.plot_signal or args.plot_noise:
+        out_dir = Path(r"Codebase\Analysis\Figure Dump")
+        out_dir.mkdir(parents=True, exist_ok=True)
+        info_file = out_dir / "Analysis_Run_Info.txt"
+
+        lines = []
+        lines.append(f"Run Timestamp: {datetime.now().isoformat(timespec='seconds')}")
+        lines.append(f"Data Path: {args.path}")
+        lines.append("")
+        lines.append("[Arguments]")
+        for key, value in sorted(vars(args).items()):
+            lines.append(f"{key}: {value}")
+
+        lines.append("")
+        lines.append("[Testing Settings]")
+        lines.append(f"SIM_DATA: {SIM_DATA}")
+        if SIM_DATA:
+            lines.append(f"SIM_SIGNAL: {locals().get('SIM_SIGNAL', 'N/A')}")
+
+        lines.append(f"OFFSET_CENTER: {OFFSET_CENTER}")
+        if OFFSET_CENTER:
+            lines.append(f"offset_MHz: {locals().get('offset', 'N/A')}")
+            lines.append(f"center_freq_Hz_after_offset: {meta.get('Center Frequency (Hz)', 'N/A')}")
+
+        lines.append(f"TRUNCATE_SIGNAL: {TRUNCATE_SIGNAL}")
+        if TRUNCATE_SIGNAL:
+            lines.append(f"truncate_end_index: {locals().get('n', 'N/A')}")
+        
+        lines.append(f"BRUTE_FORCE_CLEAN: {BRUTE_FORCE_CLEAN}")
+        if BRUTE_FORCE_CLEAN:
+            BFC_factor = locals().get('cleaning_itterations', 'N/A')
+            lines.append(f"cleaning_itterations: {BFC_factor if BFC_factor > 0 else 'Until 0% Rejection Rate'}")
+
+        lines.append("")
+        lines.append("[Resolved Processing Settings]")
+        lines.append(f"baseline_subtraction_enabled: {args.sub}")
+        if args.sub:
+            lines.append(f"sub_deg: {args.deg}")
+            lines.append(f"sub_n_sub: {args.n_sub}")
+            lines.append(f"sub_sigma: {args.sigma}")
+
+        lines.append(f"binning_enabled: {args.bin}")
+        if args.bin:
+            lines.append(f"bin_factor: {args.bin_factor}")
+
+        lines.append(f"cleaning_enabled: {args.clean}")
+        if args.clean:
+            lines.append(f"clean_deg: {args.deg}")
+            lines.append(f"clean_n_sub: {args.n_sub}")
+            lines.append(f"clean_sigma: {args.sigma}")
+
+        lines.append("")
+        lines.append("[Data Summary]")
+        lines.append(f"powers_shape: {powers.shape}")
+        lines.append(f"freqs_shape: {freqs.shape}")
+        lines.append(f"n_pressures: {len(pressures) if hasattr(pressures, '__len__') else 'N/A'}")
+        lines.append(f"center_frequency_Hz: {meta.get('Center Frequency (Hz)', 'N/A')}")
+        lines.append(f"experiment_description: {meta.get('Experiment Description', 'N/A')}")
+
+        info_file.write_text("\n".join(lines), encoding="utf-8")

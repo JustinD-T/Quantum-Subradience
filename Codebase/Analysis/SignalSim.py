@@ -4,6 +4,7 @@ from Utilities import loadData, subtractBaseline
 
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy import constants as const
 
 # I_V =
 # PHI_D = 3.56e-5 # sterradians
@@ -31,25 +32,38 @@ class SignalSim:
         self.ATM_PRESSURE = constants['ATM_PRESSURE']
         self.NOISE_STD = constants['NOISE_STD']
         self.BASELINE_COEFFS = constants['BASELINE_COEFFS']
+        
+        self.Q = constants['Q']
+        self.T = constants['T']
+        self.A_eg = constants['A_eg']
+        self.nu = constants['nu']
+        self.L = constants['L']
+        self.PHI_D = constants['PHI_D']
+        self.A_p = constants['A_p']
 
-
-    def COPower(self, concentration):
+    def COPower(self, co_ppm, pressure, CO_bandwidth):
         # Gives the expected power for a given concentration (per measurement)
-        return (self.CO_POWER * (concentration / 200)) * self.SWEEP_TIME
+        n_e = (pressure / const.k * self.T) * (co_ppm / 1e6) * np.exp(-33.2 / self.T) / self.Q 
+        I_v = (3 / (8 * np.pi * CO_bandwidth)) * n_e * const.h * self.nu * self.A_eg * self.L
+        P_v = I_v * CO_bandwidth * self.PHI_D * self.A_p
+        return P_v * (1 + np.random.normal(-0.1, 0.1)) * self.SWEEP_TIME # add some variability to the signal power 
     
     def COBandwidth(self, pressure):
         # Gives the expected bandwidth at a given pressure
-        return self.CO_BANDWIDTH_ATM * (pressure / self.ATM_PRESSURE)
+        return 363e3 * (pressure / 0.1)
     
-    def COPowerAtFreq(self, concentration, pressure, freq):
+    def COPowerAtFreq(self, co_ppm, pressure, freq):
         # Gives the power at a given frequency
-        CO_power = self.COPower(concentration)
         CO_bandwidth = self.COBandwidth(pressure)
-        return  CO_power * ( (1 / np.pi) * ( (0.5 * CO_bandwidth) / ((freq - self.CENTER_FREQ)**2 + (0.5 * CO_bandwidth)**2) ) )
+        CO_power = self.COPower(co_ppm, pressure, CO_bandwidth)
+        return CO_power * self.gaussian(freq, self.CENTER_FREQ, CO_bandwidth / (2 * np.sqrt(2 * np.log(2)))) # convert FWHM to sigma for gaussian
+    
+    def gaussian(self, x, mu, sigma):
+        return (1/(sigma * np.sqrt(2 * np.pi))) * np.exp(-((x-mu)**2) / (2 * sigma**2))
 
-    def generateCOSignal(self, pressure, concentration):
+    def generateCOSignal(self, pressure, co_ppm):
         freqs = np.linspace(self.CENTER_FREQ - self.SPAN/2, self.CENTER_FREQ + self.SPAN/2, self.N_PTS)
-        signal = self.COPowerAtFreq(concentration, pressure, freqs)
+        signal = self.COPowerAtFreq(co_ppm, pressure, freqs)
         return signal
 
     def generateNoise(self):
@@ -65,10 +79,13 @@ class SignalSim:
 
         return measurement + polyval
     
-    def generateMeasurement(self, pressure, concentration):
+    def generateMeasurement(self, pressure, co_ppm):
         
         if self.CO_SIGNAL is True:
-            signal = self.generateCOSignal(pressure, concentration) * (1 + np.random.normal(-0.1, 0.1)) # add some variability to the signal power
+            signal = self.generateCOSignal(pressure, co_ppm) * (1 + np.random.normal(-0.1, 0.1)) # add some variability to the signal power
+        else:
+            signal = np.zeros(self.N_PTS)
+
         noise = self.generateNoise()
 
         measurement = self.addBaseline(signal + noise)
@@ -81,8 +98,8 @@ class SignalSim:
         for i in range(self.N_MEAS):
             print(f'Simulating measurement {i+1}/{self.N_MEAS}', end='\r')
             pressure = self.pressures[i]
-            concentration = float(self.meta['initial_CO_concentration (ppm)'].replace('>', '').replace('<', '')) * (self.pressures[i] / self.pressures[0]) # Assuming concentration scales linearly with pressure
-            simulated_data[:, i] = self.generateMeasurement(pressure, concentration)
+            co_ppm = float(self.meta['initial_CO_concentration (ppm)'].replace('>', '').replace('<', '')) * (self.pressures[i] / self.pressures[0]) # Assuming concentration scales linearly with pressure
+            simulated_data[:, i] = self.generateMeasurement(pressure, co_ppm)
 
         return simulated_data
     
@@ -92,10 +109,10 @@ class SignalSim:
     def simulateExample(self):
         # Plots CO signal, noise, baseline on seperate graphs, then their combiend sum on the last
         pressure = self.pressures[len(self.pressures) // 2]
-        concentration = float(self.meta['initial_CO_concentration (ppm)'].replace('>', '').replace('<', '')) * (pressure / self.pressures[0])
+        co_ppm = float(self.meta['initial_CO_concentration (ppm)'].replace('>', '').replace('<', '')) * (self.pressures[0] / pressure)
         
         # Get data
-        signal = self.generateCOSignal(pressure, concentration)
+        signal = self.generateCOSignal(pressure, co_ppm)
         noise = self.generateNoise()
         baseline = self.addBaseline(np.zeros_like(signal))
         freqs = self.getSpectralAxis()
@@ -112,8 +129,6 @@ class SignalSim:
         axs[3].set_title('Combined Signal')
         plt.tight_layout()
         plt.show()
-
-
 
 def compute_noise_std(powers, freqs, constants):
     # Gives the standard deviation of measurements
@@ -139,6 +154,13 @@ def getSimulatedData(powers, freqs, pressures, meta, sim_co=True):
     'CO_POWER': 1e-16,
     'CO_BANDWIDTH_ATM': 3.5e9,
     'ATM_PRESSURE': 1012.25,
+    'Q' : 108, # partition function for CO at room temperature
+    'T' : 298, # K, room temperature
+    'A_eg' : 2.5e-6, # s^-1, Einstein A coefficient for the transition
+    'nu' : 345.796e9, #GhX, transition wavelength
+    'L' : 100, #cm, length of chamber,
+    'A_p' : 0.21, # cm^2, area of photodetector,
+    'PHI_D' : 3.56e-5 # sterradians, solid angle subtended by photodetector
     }
 
     NOISE_STD, BASELINE_COEFFS = compute_noise_std(powers, freqs, constants)
@@ -176,8 +198,14 @@ if __name__ == "__main__":
         'CO_POWER': 1e-16,
         'CO_BANDWIDTH_ATM': 3.5e9,
         'ATM_PRESSURE': 1012.25,
+        'Q' : 108, # partition function for CO at room temperature
+        'T' : 298, # K, room temperature
+        'A_eg' : 2.5e-6, # s^-1, Einstein A coefficient for the transition
+        'nu' : 345.796e9, #GhX, transition wavelength
+        'L' : 100, #cm, length of chamber,
+        'A_p' : 0.21, # cm^2, area of photodetector,
+        'PHI_D' : 3.56e-5 # sterradians, solid angle subtended by photodetector
     }
-
     NOISE_STD, BASELINE_COEFFS = compute_noise_std(powers, freqs, constants)
     constants['NOISE_STD'] = NOISE_STD
     constants['BASELINE_COEFFS'] = BASELINE_COEFFS
