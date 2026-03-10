@@ -182,10 +182,10 @@ if __name__ == "__main__":
     powers, freqs, pressures, meta = loadData(args.path)
 
     # --- TESTING FEATURES ---
-    SIM_DATA = True
+    SIM_DATA = False
     OFFSET_CENTER = False
     TRUNCATE_SIGNAL = False
-    BRUTE_FORCE_CLEAN = True
+    BRUTE_FORCE_CLEAN = False
 
     # --- TEST: Generate synthetic Gaussian noise for testing
     if SIM_DATA:

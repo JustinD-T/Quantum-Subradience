@@ -142,6 +142,9 @@ def cleanData(powers, spectral_axis, freq_center, sigma, deg, n_sub):
     # --- METHOD 3 --- Outlier detection based on power deviations from median (commented out for now, can be used for comparison)
     # outlier_indices = powerMedDeviationOutlierDet(powers, spectral_axis, sigma, freq_center, deg=deg, n_sub=n_sub, tresh=2)
 
+    # --- METHOD 4 --- Outlier detection based on true rolling variance (commented out for now, can be used for comparison)
+    # outlier_indices = trueRollingVarOutierDet(powers, spectral_axis, freq_center, sigma, deg=deg, n=n_sub)
+
     mask = np.ones(powers.shape[1], dtype=bool)
     mask[outlier_indices] = False
     masked_powers = powers[:, mask]
@@ -389,3 +392,39 @@ def pressureDecayCurve(pressures, sweep_time):
         return np.exp(coeffs[1]) * t**coeffs[0]
 
     return pressure_fit
+
+def trueRollingVarOutierDet(powers, spectral_axis, freq_center, sigma, deg, n):
+    
+    powers = subtractBaseline(powers, spectral_axis, freq_center, sigma, deg=deg, n=n)
+
+    powers_mask = (spectral_axis < (freq_center - sigma)) | (spectral_axis > (freq_center + sigma))
+    powers = powers[powers_mask, :]
+
+    # compute mean up to a point
+    # compute the std of that mean
+    # add the next value, see if the std increases
+    # if no then reject that index
+
+    rejected_indices = []
+    accepted_indices = []
+
+    rolling_mean = np.mean(powers[:,0], axis=0)
+    rolling_std = np.std(powers[:,0], axis=0)
+
+    rolling_sum = powers[:,0].copy()
+    accepted_indices.append(0)
+
+    for i in range(powers.shape[1]):
+        new_sum = rolling_sum + powers[:,i]
+        mean = new_sum / (len(accepted_indices) + 1)
+        new_std = np.std(mean)
+
+        if new_std < rolling_std:
+            rolling_sum = new_sum
+            rolling_std = new_std
+            accepted_indices.append(i)
+        else:
+            rejected_indices.append(i)
+    return np.array(rejected_indices)
+
+
