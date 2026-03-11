@@ -177,6 +177,9 @@ def subtractBaseline(powers, spectral_axis, freq_center, sigma, deg, n, ret_coef
     if TEST_BOOL:
         start = time.time()
 
+    if deg == 0:
+        return powers
+
     new_powers = np.zeros_like(powers)
 
     coeffs_arr = np.zeros((powers.shape[1], deg + 1))
@@ -196,6 +199,12 @@ def subtractBaseline(powers, spectral_axis, freq_center, sigma, deg, n, ret_coef
 
             # Subtract baseline from original power data
             new_powers[:,i] = powers[:,i] - baseline
+
+            #  -- TESTING PLOT ---
+            # plt.plot(spectral_axis, powers[:,i], label='Original')
+            # polyval = np.polyval(coeffs, spectral_axis)
+            # plt.plot(spectral_axis, polyval, label='Baseline Fit')
+            # plt.show()
         
         if ret_coeffs:
             return new_powers, coeffs_arr

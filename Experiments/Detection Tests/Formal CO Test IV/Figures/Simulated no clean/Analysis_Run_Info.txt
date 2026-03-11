@@ -1,5 +1,5 @@
-Run Timestamp: 2026-03-11T17:09:19
-Data Path: Experiments\Detection Tests\Setup Test I\Only PreAmp\ONLYPREAMP_pickled_data
+Run Timestamp: 2026-03-11T11:26:07
+Data Path: Experiments\Detection Tests\Formal CO Test IV\Format CO Test IV_pickled_data
 
 [Arguments]
 bin: True
@@ -8,17 +8,17 @@ clean: False
 defs: True
 deg: 3
 n_sub: 1
-path: Experiments\Detection Tests\Setup Test I\Only PreAmp\ONLYPREAMP_pickled_data
-plot_baseline: True
+path: Experiments\Detection Tests\Formal CO Test IV\Format CO Test IV_pickled_data
 plot_noise: True
 plot_signal: True
 save_fig: True
-sigma: 2000000.0
+sigma: 1500000.0
 signal_sum: False
 sub: True
 
 [Testing Settings]
-SIM_DATA: False
+SIM_DATA: True
+SIM_SIGNAL: True
 OFFSET_CENTER: False
 TRUNCATE_SIGNAL: False
 BRUTE_FORCE_CLEAN: False
@@ -27,14 +27,14 @@ BRUTE_FORCE_CLEAN: False
 baseline_subtraction_enabled: True
 sub_deg: 3
 sub_n_sub: 1
-sub_sigma: 2000000.0
+sub_sigma: 1500000.0
 binning_enabled: True
 bin_factor: 120
 cleaning_enabled: False
 
 [Data Summary]
-powers_shape: (55, 1462)
+powers_shape: (55, 4260)
 freqs_shape: (55,)
-n_pressures: 1462
+n_pressures: 4260
 center_frequency_Hz: +2.50000000000E+009
-experiment_description: NO CO TEST, BYPASSED EXTERNAL AMPLIFIERS
+experiment_description: Using AVER and higher VBW
