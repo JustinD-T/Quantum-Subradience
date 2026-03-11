@@ -215,7 +215,7 @@ if __name__ == "__main__":
     # --- TESTING FEATURES ---
     SIM_DATA = False
     OFFSET_CENTER = False
-    TRUNCATE_SIGNAL = False
+    TRUNCATE_SIGNAL = True
     BRUTE_FORCE_CLEAN = False
 
     # --- TEST: Generate synthetic Gaussian noise for testing

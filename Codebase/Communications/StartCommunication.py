@@ -90,6 +90,7 @@ class CommunicationMaster():
                     
                 # Get CO Concerntration if applicable
                 init_CO_conc = input("Enter initial CO Concentration in ppm (or leave blank to skip): ")
+                input_gain = input("Enter Effective Gain at Input in dB (or leave blank to skip): ")
                 
                 # Header info
                 header = f"""# Experiment Log ({timestamp})
@@ -101,6 +102,7 @@ class CommunicationMaster():
 #    visualization_enabled: {self.visualization_enabled}
 #    reading_interval (s): {self.interval}
 #    visual_update_cycle_interval: {self.vis_update_cadence}
+#    Effective Gain at Input (Db) : {input_gain if input_gain != '' else 'N/A'}
 #    initial_CO_concentration (ppm): {init_CO_conc if init_CO_conc != '' else 'N/A'}
 # Serial Configuration ({'ENABLED' if self.pressure_enabled else 'DISABLED'}):
 #    Port: {self.config['pressure_sensor']['serial'].get('port', 'COM1')}
