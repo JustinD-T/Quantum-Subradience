@@ -98,12 +98,20 @@ def plotSignal(powers, spectral_axis, title, sigma, central_freq, init_CO_level,
     # normalize spectral axis
     spectral_axis = spectral_axis - central_freq
 
+    signal_mean = np.mean(signal[(spectral_axis < -sigma) | (spectral_axis > sigma)], axis=0)
+    signal_std = np.std(signal[(spectral_axis < -sigma) | (spectral_axis > sigma)], axis=0)
+
     fig, ax = plt.subplots(figsize=(10, 6), facecolor='black')
     ax.set_facecolor('black')
     ax.plot(spectral_axis, signal, color='white', linewidth=1)
     
-    ax.axvspan(-sigma, +sigma, color='green', alpha=0.3, label=r'$\pm \sigma$ Region')
     
+    ax.axhspan(signal_mean - signal_std, signal_mean + signal_std, color='red', alpha=0.05, label=r'±1σ Noise Level')
+    ax.axhspan(signal_mean - 2*signal_std, signal_mean + 2*signal_std, color='orange', alpha=0.05, label=r'±2σ Noise Level')
+    ax.axhspan(signal_mean - 3*signal_std, signal_mean + 3*signal_std, color='yellow', alpha=0.05, label=r'±3σ Noise Level')
+    ax.axhline(signal_mean, color='red', linestyle='--', linewidth=1, label='Mean Noise Level', alpha=0.6)
+    ax.axvspan(-sigma, +sigma, color='green', alpha=0.3, label=r'$\pm \sigma_{signal}$ Region')
+
     ax.set_xlabel('Frequency (MHz)', color='white')
     ax.set_ylabel('Power (W)', color='white')
     ax.set_title(f'{title}\nInitial CO: {init_CO_level}', color='white')
@@ -156,12 +164,34 @@ def plotPeakVsTime(powers, freqs, center_freq, sigma=500e3, save_fig=False):
         plt.savefig(r'Codebase\Analysis\Figure Dump\peak_vs_time.png', facecolor='black', dpi=300)
     plt.close()
 
+def plotBaseline(powers, spectral_axis, center_freq, sigma=500e3, deg=3, n_sub=10, save_fig=False):
+    powers = np.mean(powers, axis=1)
+    power_mask = (spectral_axis >= center_freq - sigma) & (spectral_axis <= center_freq + sigma)
+    baseline_mask = ~power_mask
+    baseline_freqs = spectral_axis[baseline_mask]
+    baseline_powers = powers[baseline_mask]
+    coeffs = np.polyfit(baseline_freqs, baseline_powers, deg=deg)
+    baseline_fit = np.polyval(coeffs, spectral_axis)
+    fig, ax = plt.subplots(figsize=(10, 6), facecolor='black')
+    ax.set_facecolor('black')
+    ax.set_xlabel('Frequency (MHz)', color='white')
+    ax.set_ylabel('Power (W)', color='white')
+    ax.axvspan(center_freq - sigma, center_freq + sigma, color='red', alpha=0.2, label='Center Avoidance Area')
+    ax.tick_params(colors='white')
+    ax.plot(spectral_axis, powers, color='white', linewidth=1, label='Average Power', alpha=0.6)
+    ax.plot(spectral_axis, baseline_fit, color='cyan', linewidth=2, label='Baseline Fit')
 
+    if save_fig:
+        plt.savefig(r'Codebase\Analysis\Figure Dump\baseline_fits.png', facecolor='black', dpi=300)
+        plt.close()
+    else:
+        plt.show()
+    plt.close()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--path', type=str, required=True)
-    parser.add_argument('--sigma', type=float, default=1.5e6)
+    parser.add_argument('--sigma', type=float, default=2e6)
     parser.add_argument('--save_fig', action='store_true')
     parser.add_argument('--deg', type=int, default=3)
     parser.add_argument('--n_sub', type=int, default=1)
@@ -172,13 +202,14 @@ if __name__ == "__main__":
     parser.add_argument('--plot_signal', action='store_true')
     parser.add_argument('--signal_sum', action='store_true')
     parser.add_argument('--defs', action='store_true')
+    parser.add_argument('--plot_baseline', action='store_true')
     parser.add_argument('--clean', action='store_true', help='Run cleaning routine to remove outlier data')
 
     args = parser.parse_args()
     if args.defs:
         args.save_fig, args.sub, args.bin = True, True, True
-        args.plot_noise, args.plot_signal, args.signal_sum, args.clean = True, True, False, True
-
+        args.plot_noise, args.plot_signal, args.signal_sum, args.clean = True, True, False, False
+        args.plot_baseline = True
     powers, freqs, pressures, meta = loadData(args.path)
 
     # --- TESTING FEATURES ---
@@ -202,6 +233,9 @@ if __name__ == "__main__":
         # --- TEST: Truncate to the first n measurements
         n = input('TEST: Input Data Truncation End Index: ')
         powers = truncData(powers, n=int(n))
+
+    if args.plot_baseline:
+        plotBaseline(powers, freqs, float(meta['Center Frequency (Hz)']), args.sigma, args.deg, args.n_sub, args.save_fig)
     
     if BRUTE_FORCE_CLEAN:
         cleaning_itterations = int(input('TEST: Input number of cleaning iterations; or \'0\' to run continously until rejection rate is 0: '))
@@ -239,7 +273,7 @@ if __name__ == "__main__":
     if args.plot_signal:
         plotSignal(powers, freqs, meta['Experiment Description'], args.sigma, float(meta['Center Frequency (Hz)']), meta['initial_CO_concentration (ppm)'], args.signal_sum, args.save_fig)
     
-    if args.plot_signal or args.plot_noise:
+    if args.plot_signal or args.plot_noise or args.plot_baseline:
         out_dir = Path(r"Codebase\Analysis\Figure Dump")
         out_dir.mkdir(parents=True, exist_ok=True)
         info_file = out_dir / "Analysis_Run_Info.txt"

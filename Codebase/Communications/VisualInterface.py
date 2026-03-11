@@ -12,7 +12,7 @@ class VisualInterface(QtWidgets.QMainWindow):
     def __init__(self, spectral_axis=None):
         super().__init__()
 
-        BASELINE = True
+        BASELINE = False
 
         self.setWindowTitle("Quantum-Subradience Real-Time Monitor")
         self.resize(1400, 950)
