@@ -11,6 +11,11 @@ from scipy import constants as const
 # A_P = 0.21 # cm^2
 # DELTA_V = 5 #GhZ
 
+# Multyply signal by teh gain (gain/10)*10 (JUST SUM IN THE GAIN + IMPEDENCE)
+# DO NOT INCLUDE THE GAIN OF THE PREAMPLIFIER
+# TAKE IN THE LOSS OF THE DETECTOR INTO ACCOUNT
+    # LOOK INTO THE CONVERSION LOSS OF THE DATASHEET, APPLY TO TEH INPUT SIGNAL
+
 class SignalSim:
     def __init__(self, meta, pressures, constants):
 
@@ -32,12 +37,14 @@ class SignalSim:
         self.ATM_PRESSURE = constants['ATM_PRESSURE']
         self.NOISE_STD = constants['NOISE_STD']
         self.BASELINE_COEFFS = constants['BASELINE_COEFFS']
+        self.GAIN = 10 ** (constants['GAIN'] / 10) # convert from dB to linear
+        self.RBW = constants['RBW']
         
         self.Q = constants['Q']
         self.T = constants['T']
-        self.A_eg = constants['A_eg']
+        self.A_eg = constants['A_eg'] * 0.0001 # convert from s^-1 cm^2 to s^-1 m^2
         self.nu = constants['nu']
-        self.L = constants['L']
+        self.L = constants['L'] * 0.01 # convert from cm to m
         self.PHI_D = constants['PHI_D']
         self.A_p = constants['A_p']
 
@@ -46,7 +53,7 @@ class SignalSim:
         n_e = (pressure / const.k * self.T) * (co_ppm / 1e6) * np.exp(-33.2 / self.T) / self.Q 
         I_v = (3 / (8 * np.pi * CO_bandwidth)) * n_e * const.h * self.nu * self.A_eg * self.L
         P_v = I_v * CO_bandwidth * self.PHI_D * self.A_p
-        return P_v * (1 + np.random.normal(-0.1, 0.1)) * self.SWEEP_TIME # add some variability to the signal power 
+        return P_v 
     
     def COBandwidth(self, pressure):
         # Gives the expected bandwidth at a given pressure
@@ -56,11 +63,14 @@ class SignalSim:
         # Gives the power at a given frequency
         CO_bandwidth = self.COBandwidth(pressure)
         CO_power = self.COPower(co_ppm, pressure, CO_bandwidth)
-        return CO_power * self.gaussian(freq, self.CENTER_FREQ, CO_bandwidth / (2 * np.sqrt(2 * np.log(2)))) # convert FWHM to sigma for gaussian
+        distribution = self.gaussian_normalized(freq, self.CENTER_FREQ, CO_bandwidth)
+        sampled_power = CO_power * distribution * self.RBW
+        return self.GAIN * sampled_power
     
-    def gaussian(self, x, mu, sigma):
-        return (1/(sigma * np.sqrt(2 * np.pi))) * np.exp(-((x-mu)**2) / (2 * sigma**2))
-
+    def gaussian_normalized(self, x, mu, sigma):
+        normalization = 1 / (sigma * np.sqrt(2 * np.pi))
+        return normalization * np.exp(-((x - mu)**2) / (2 * sigma**2))
+    
     def generateCOSignal(self, pressure, co_ppm):
         freqs = np.linspace(self.CENTER_FREQ - self.SPAN/2, self.CENTER_FREQ + self.SPAN/2, self.N_PTS)
         signal = self.COPowerAtFreq(co_ppm, pressure, freqs)
@@ -151,6 +161,8 @@ def getSimulatedData(powers, freqs, pressures, meta, sim_co=True):
     'CENTER_FREQ': float(meta['Center Frequency (Hz)']),
     'SPAN': float(meta['Span']),
     'SWEEP_TIME': float(meta['Sweep Time (ms)']),
+    'RBW' : float(meta['RBW (Hz)']),
+    'GAIN' : float(meta['Effective Gain at Input (Db)']),
     'CO_POWER': 1e-16,
     'CO_BANDWIDTH_ATM': 3.5e9,
     'ATM_PRESSURE': 1012.25,
@@ -202,6 +214,8 @@ if __name__ == "__main__":
         'CO_POWER': 1e-16,
         'CO_BANDWIDTH_ATM': 3.5e9,
         'ATM_PRESSURE': 1012.25,
+        'RBW' : float(meta['RBW (Hz)']),
+        'GAIN' : float(meta['Effective Gain at Input (Db)']),
         'Q' : 108, # partition function for CO at room temperature
         'T' : 298, # K, room temperature
         'A_eg' : 2.5e-6, # s^-1, Einstein A coefficient for the transition
