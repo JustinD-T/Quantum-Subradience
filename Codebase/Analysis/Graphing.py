@@ -213,12 +213,12 @@ if __name__ == "__main__":
     powers, freqs, pressures, meta = loadData(args.path)
 
     # --- TESTING FEATURES ---
-    SIM_DATA = True
+    SIM_DATA = False
     CHANGE_CONCENTRATION = False
     OFFSET_CENTER = False
     TRUNCATE_SIGNAL = False
     BRUTE_FORCE_CLEAN = False
-    INTERPOLATE_PRESSURES = True
+    INTERPOLATE_PRESSURES = False
 
     # --- TEST: Interpolate pressures to match number of measurements if needed
     if INTERPOLATE_PRESSURES:
