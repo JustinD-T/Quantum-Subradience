@@ -194,7 +194,7 @@ if __name__ == "__main__":
     parser.add_argument('--sigma', type=float, default=2.5e6)
     parser.add_argument('--save_fig', action='store_true')
     parser.add_argument('--deg', type=int, default=3)
-    parser.add_argument('--n_sub', type=int, default=500)
+    parser.add_argument('--n_sub', type=int, default=1)
     parser.add_argument('--sub', action='store_true')
     parser.add_argument('--bin', action='store_true')
     parser.add_argument('--bin_factor', type=int, default=120)
@@ -213,7 +213,7 @@ if __name__ == "__main__":
     powers, freqs, pressures, meta = loadData(args.path)
 
     # --- TESTING FEATURES ---
-    SIM_DATA = False
+    SIM_DATA = True
     CHANGE_CONCENTRATION = False
     OFFSET_CENTER = False
     TRUNCATE_SIGNAL = False
@@ -223,7 +223,7 @@ if __name__ == "__main__":
     # --- TEST: Interpolate pressures to match number of measurements if needed
     if INTERPOLATE_PRESSURES:
         from SignalSim import interpolatePressures
-        pressures = interpolatePressures(pressures, powers.shape[1])
+        pressures = interpolatePressures(pressures, int(powers.shape[1]), float(meta.get('Sweep Time (ms)', 4)))
 
     # --- TEST: Change initial CO concentration in metadata for testing ---
     if CHANGE_CONCENTRATION:
