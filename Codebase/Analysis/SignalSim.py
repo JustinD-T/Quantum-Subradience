@@ -174,6 +174,10 @@ def getSimulatedData(powers, freqs, pressures, meta, sim_co=True):
 
     return sim_powers, sim_freqs
 
+def interpolatePressures(pressures, target_length):
+    # assume a linear depressurization
+    
+
 if __name__ == "__main__":
     import argparse
 
