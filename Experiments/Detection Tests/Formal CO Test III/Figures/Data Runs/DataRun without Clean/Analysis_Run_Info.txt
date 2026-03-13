@@ -1,4 +1,4 @@
-Run Timestamp: 2026-03-13T02:15:11
+Run Timestamp: 2026-03-13T00:55:23
 Data Path: Experiments\Detection Tests\Formal CO Test III\FORMAL_CO_RUN_III_pickled_data
 
 [Arguments]
@@ -7,7 +7,7 @@ bin_factor: 120
 clean: False
 defs: True
 deg: 3
-n_sub: 500
+n_sub: 1
 path: Experiments\Detection Tests\Formal CO Test III\FORMAL_CO_RUN_III_pickled_data
 plot_baseline: True
 plot_noise: True
@@ -26,14 +26,14 @@ BRUTE_FORCE_CLEAN: False
 [Resolved Processing Settings]
 baseline_subtraction_enabled: True
 sub_deg: 3
-sub_n_sub: 500
+sub_n_sub: 1
 sub_sigma: 2000000.0
 binning_enabled: True
 bin_factor: 120
 cleaning_enabled: False
 
 [Data Summary]
-powers_shape: (55, 5038)
+powers_shape: (55, 5538)
 freqs_shape: (55,)
 n_pressures: 5538
 center_frequency_Hz: +2.50000000000E+009
