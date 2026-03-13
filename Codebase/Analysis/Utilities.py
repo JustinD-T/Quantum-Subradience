@@ -132,6 +132,9 @@ def cleanData(powers, spectral_axis, freq_center, sigma, deg, n_sub):
 
     if TEST_BOOL:
         start = time.time() 
+
+    shot_noise_outliers = shotNoiseReject(powers)
+    print(f"Identified {len(shot_noise_outliers)}/{powers.shape[1]} outliers based on shot noise thresholding.")
     
     # --- METHOD 1 --- Outlier detection based on variance integral increases
     # outlier_indices = varianceIncreaseOutlierDet(powers, spectral_axis, freq_center, sigma, deg=deg, n=n_sub)
@@ -144,6 +147,8 @@ def cleanData(powers, spectral_axis, freq_center, sigma, deg, n_sub):
 
     # --- METHOD 4 --- Outlier detection based on true rolling variance (commented out for now, can be used for comparison)
     outlier_indices = trueRollingVarOutierDet(powers, spectral_axis, freq_center, sigma, deg=deg, n=n_sub)
+
+    outlier_indices = np.unique(np.concatenate((outlier_indices, shot_noise_outliers)))
 
     mask = np.ones(powers.shape[1], dtype=bool)
     mask[outlier_indices] = False
@@ -436,4 +441,12 @@ def trueRollingVarOutierDet(powers, spectral_axis, freq_center, sigma, deg, n):
             rejected_indices.append(i)
     return np.array(rejected_indices)
 
+def shotNoiseReject(powers):
+    stds = np.std(powers, axis=0)
+    medians = np.median(powers, axis=0)
 
+    up_bound = medians + 25*stds
+
+    outlier_indices = np.where(np.any(powers > up_bound, axis=0))[0]
+
+    return outlier_indices
