@@ -191,7 +191,7 @@ def plotBaseline(powers, spectral_axis, center_freq, sigma=500e3, deg=3, n_sub=1
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--path', type=str, required=True)
-    parser.add_argument('--sigma', type=float, default=2e6)
+    parser.add_argument('--sigma', type=float, default=2.5e6)
     parser.add_argument('--save_fig', action='store_true')
     parser.add_argument('--deg', type=int, default=3)
     parser.add_argument('--n_sub', type=int, default=1)
@@ -208,15 +208,21 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.defs:
         args.save_fig, args.sub, args.bin = True, True, True
-        args.plot_noise, args.plot_signal, args.signal_sum, args.clean = True, True, False, False
+        args.plot_noise, args.plot_signal, args.signal_sum, args.clean = True, True, False, True
         args.plot_baseline = True
     powers, freqs, pressures, meta = loadData(args.path)
 
     # --- TESTING FEATURES ---
     SIM_DATA = False
     OFFSET_CENTER = False
-    TRUNCATE_SIGNAL = True
+    TRUNCATE_SIGNAL = False
     BRUTE_FORCE_CLEAN = False
+    INTERPOLATE_PRESSURES = True
+
+    # --- TEST: Interpolate pressures to match number of measurements if needed
+    if INTERPOLATE_PRESSURES:
+        from SignalSim import interpolatePressures
+        pressures = interpolatePressures(pressures, powers.shape[1])
 
     # --- TEST: Generate synthetic Gaussian noise for testing
     if SIM_DATA:

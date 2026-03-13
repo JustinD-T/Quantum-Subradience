@@ -134,7 +134,7 @@ def cleanData(powers, spectral_axis, freq_center, sigma, deg, n_sub):
         start = time.time() 
     
     # --- METHOD 1 --- Outlier detection based on variance integral increases
-    outlier_indices = varianceIncreaseOutlierDet(powers, spectral_axis, freq_center, sigma, deg=deg, n=n_sub)
+    # outlier_indices = varianceIncreaseOutlierDet(powers, spectral_axis, freq_center, sigma, deg=deg, n=n_sub)
 
     # --- METHOD 2 --- Outlier detection based on mean power deviations (commented out for now, can be used for comparison)
     # outlier_indices = meanPowerOutlierDet(powers, spectral_axis, freq_center, sigma)
@@ -143,7 +143,7 @@ def cleanData(powers, spectral_axis, freq_center, sigma, deg, n_sub):
     # outlier_indices = powerMedDeviationOutlierDet(powers, spectral_axis, sigma, freq_center, deg=deg, n_sub=n_sub, tresh=2)
 
     # --- METHOD 4 --- Outlier detection based on true rolling variance (commented out for now, can be used for comparison)
-    # outlier_indices = trueRollingVarOutierDet(powers, spectral_axis, freq_center, sigma, deg=deg, n=n_sub)
+    outlier_indices = trueRollingVarOutierDet(powers, spectral_axis, freq_center, sigma, deg=deg, n=n_sub)
 
     mask = np.ones(powers.shape[1], dtype=bool)
     mask[outlier_indices] = False
