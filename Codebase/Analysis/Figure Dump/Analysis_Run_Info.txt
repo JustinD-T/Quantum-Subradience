@@ -1,5 +1,5 @@
-Run Timestamp: 2026-03-11T18:10:06
-Data Path: Experiments\Detection Tests\Formal CO Test IV\Format CO Test IV_pickled_data
+Run Timestamp: 2026-03-12T22:31:38
+Data Path: ExperimentLogs\ExperimentLog_20260312-215246.csv
 
 [Arguments]
 bin: True
@@ -8,7 +8,7 @@ clean: False
 defs: True
 deg: 3
 n_sub: 1
-path: Experiments\Detection Tests\Formal CO Test IV\Format CO Test IV_pickled_data
+path: ExperimentLogs\ExperimentLog_20260312-215246.csv
 plot_baseline: True
 plot_noise: True
 plot_signal: True
@@ -20,8 +20,7 @@ sub: True
 [Testing Settings]
 SIM_DATA: False
 OFFSET_CENTER: False
-TRUNCATE_SIGNAL: True
-truncate_end_index: 580
+TRUNCATE_SIGNAL: False
 BRUTE_FORCE_CLEAN: False
 
 [Resolved Processing Settings]
@@ -34,8 +33,8 @@ bin_factor: 120
 cleaning_enabled: False
 
 [Data Summary]
-powers_shape: (55, 580)
+powers_shape: (55, 213)
 freqs_shape: (55,)
-n_pressures: 4260
+n_pressures: 213
 center_frequency_Hz: +2.50000000000E+009
-experiment_description: Using AVER and higher VBW
+experiment_description: Bypassed external amps, only preamp
