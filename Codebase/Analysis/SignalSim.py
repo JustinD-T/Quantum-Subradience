@@ -42,11 +42,11 @@ class SignalSim:
         
         self.Q = constants['Q']
         self.T = constants['T']
-        self.A_eg = constants['A_eg'] * 0.0001 # convert from s^-1 cm^2 to s^-1 m^2
+        self.A_eg = constants['A_eg'] 
         self.nu = constants['nu']
         self.L = constants['L'] * 0.01 # convert from cm to m
         self.PHI_D = constants['PHI_D']
-        self.A_p = constants['A_p']
+        self.A_p = constants['A_p'] * 0.0001 # convert from cm^2 to m^2
 
     def COPower(self, co_ppm, pressure, CO_bandwidth):
         # Gives the expected power for a given concentration (per measurement)
@@ -186,8 +186,17 @@ def getSimulatedData(powers, freqs, pressures, meta, sim_co=True):
 
     return sim_powers, sim_freqs
 
-def interpolatePressures(pressures, target_length):
+def interpolatePressures(pressures, target_length, sweep_time):
     # assume a linear depressurization
+
+    time_axis = np.arange(0, len(pressures)*sweep_time, sweep_time)
+    pressures_mask = np.isnan(pressures)
+    masked_pressures = pressures[~pressures_mask].astype(float)
+    masked_time_axis = time_axis[~pressures_mask].astype(float)
+
+    coeffs = np.polyfit(masked_time_axis, masked_pressures, 2)
+
+    return np.polyval(coeffs, time_axis)
     
 
 if __name__ == "__main__":
@@ -200,6 +209,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     powers, freqs, pressures, meta = loadData(args.path)
+
+    if np.isnan(pressures).any():
+        print('Pressures contain NaN values, interpolating pressures for simulation...')
+        pressures = interpolatePressures(pressures, powers.shape[1], float(meta.get('Sweep Time (ms)', 4)))
 
     # --- CONSTANTS ---
     constants = {

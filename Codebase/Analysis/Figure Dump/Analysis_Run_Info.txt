@@ -1,10 +1,5 @@
-<<<<<<< HEAD
-Run Timestamp: 2026-03-13T13:00:40
-Data Path: ExperimentLogs\ExperimentLog_20260312-224610_pickled_data
-=======
-Run Timestamp: 2026-03-13T02:15:11
-Data Path: Experiments\Detection Tests\Formal CO Test III\FORMAL_CO_RUN_III_pickled_data
->>>>>>> 8430c6474b21353ae548781e065375b4a43d67a1
+Run Timestamp: 2026-03-13T13:48:16
+Data Path: Experiments\Detection Tests\Setup Test I\CO Detect Only Preamp\COONLYPREAMP.csv
 
 [Arguments]
 bin: True
@@ -12,13 +7,8 @@ bin_factor: 120
 clean: True
 defs: True
 deg: 3
-<<<<<<< HEAD
 n_sub: 1
-path: ExperimentLogs\ExperimentLog_20260312-224610_pickled_data
-=======
-n_sub: 500
-path: Experiments\Detection Tests\Formal CO Test III\FORMAL_CO_RUN_III_pickled_data
->>>>>>> 8430c6474b21353ae548781e065375b4a43d67a1
+path: Experiments\Detection Tests\Setup Test I\CO Detect Only Preamp\COONLYPREAMP.csv
 plot_baseline: True
 plot_noise: True
 plot_signal: True
@@ -28,7 +18,8 @@ signal_sum: False
 sub: True
 
 [Testing Settings]
-SIM_DATA: False
+SIM_DATA: True
+SIM_SIGNAL: True
 OFFSET_CENTER: False
 TRUNCATE_SIGNAL: False
 BRUTE_FORCE_CLEAN: False
@@ -36,13 +27,8 @@ BRUTE_FORCE_CLEAN: False
 [Resolved Processing Settings]
 baseline_subtraction_enabled: True
 sub_deg: 3
-<<<<<<< HEAD
 sub_n_sub: 1
 sub_sigma: 2500000.0
-=======
-sub_n_sub: 500
-sub_sigma: 2000000.0
->>>>>>> 8430c6474b21353ae548781e065375b4a43d67a1
 binning_enabled: True
 bin_factor: 120
 cleaning_enabled: True
@@ -51,16 +37,8 @@ clean_n_sub: 1
 clean_sigma: 2500000.0
 
 [Data Summary]
-<<<<<<< HEAD
-powers_shape: (55, 3895)
+powers_shape: (55, 4043)
 freqs_shape: (55,)
 n_pressures: 5950
 center_frequency_Hz: +2.50000000000E+009
 experiment_description: Bypassed externals, co test with only preamp
-=======
-powers_shape: (55, 5038)
-freqs_shape: (55,)
-n_pressures: 5538
-center_frequency_Hz: +2.50000000000E+009
-experiment_description: Formal CO Test III (slight jump in pressure at start, CO possibly halved)
->>>>>>> 8430c6474b21353ae548781e065375b4a43d67a1
