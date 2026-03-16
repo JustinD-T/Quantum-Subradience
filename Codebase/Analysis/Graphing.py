@@ -217,7 +217,11 @@ if __name__ == "__main__":
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     SIM_DATA = True
+=======
+    SIM_DATA = False
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
     SIM_DATA = False
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
@@ -238,12 +242,15 @@ if __name__ == "__main__":
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 
     # Interpolate pressures to match number of measurements if needed
     if np.isnan(pressures).any():
         from SignalSim import interpolatePressures
         print("NaN values detected in pressures. Interpolating pressures to match number of measurements...")
 =======
+=======
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
@@ -266,6 +273,9 @@ if __name__ == "__main__":
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
+=======
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
@@ -310,12 +320,15 @@ if __name__ == "__main__":
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
                 powers, _ = cleanData(powers, freqs, float(meta['Center Frequency (Hz)']), args.sigma, deg=args.deg, n_sub=args.n_sub)
         else:
             while True:
                 print(f"Cleaning iteration {cleaning_itterations+1}...", end='\r')
                 powers, mask = cleanData(powers, freqs, float(meta['Center Frequency (Hz)']), args.sigma, deg=args.deg, n_sub=args.n_sub)
 =======
+=======
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
@@ -330,6 +343,9 @@ if __name__ == "__main__":
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
+=======
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
@@ -348,9 +364,12 @@ if __name__ == "__main__":
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
         if not BRUTE_FORCE_CLEAN:
             powers, _ = cleanData(powers, freqs, float(meta['Center Frequency (Hz)']), args.sigma, deg=args.deg, n_sub=args.n_sub)
 =======
+=======
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
@@ -365,6 +384,9 @@ if __name__ == "__main__":
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
+=======
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
@@ -424,7 +446,10 @@ if __name__ == "__main__":
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
@@ -438,6 +463,9 @@ if __name__ == "__main__":
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
+=======
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
@@ -466,7 +494,11 @@ if __name__ == "__main__":
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 
+=======
+            lines.append(f"cleaning_method: {CLEANING_ROUTINES.get(CLEANING_ROUTINE)}")
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
             lines.append(f"cleaning_method: {CLEANING_ROUTINES.get(CLEANING_ROUTINE)}")
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d

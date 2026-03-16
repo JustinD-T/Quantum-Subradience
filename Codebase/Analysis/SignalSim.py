@@ -34,6 +34,12 @@ class SignalSim:
         self.SWEEP_TIME = constants['SWEEP_TIME']
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+        self.CO_POWER = constants['CO_POWER']
+        self.CO_BANDWIDTH_ATM = constants['CO_BANDWIDTH_ATM']
+        self.ATM_PRESSURE = constants['ATM_PRESSURE']
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
         self.CO_POWER = constants['CO_POWER']
         self.CO_BANDWIDTH_ATM = constants['CO_BANDWIDTH_ATM']
@@ -61,8 +67,12 @@ class SignalSim:
         # Gives the expected power for a given concentration (per measurement)
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
         pressure_pa = pressure * 100 # convert from mbar to Pa
         n_e = (pressure_pa / const.k * self.T) * (co_ppm / 1e6) * np.exp(-33.2 / self.T) / self.Q 
+=======
+        n_e = (pressure / const.k * self.T) * (co_ppm / 1e6) * np.exp(-33.2 / self.T) / self.Q 
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
         n_e = (pressure / const.k * self.T) * (co_ppm / 1e6) * np.exp(-33.2 / self.T) / self.Q 
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
@@ -77,7 +87,11 @@ class SignalSim:
         # Gives the expected bandwidth at a given pressure
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
         return 363e3 * (pressure / 0.1) 
+=======
+        return 363e3 * (pressure / 0.1)
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
         return 363e3 * (pressure / 0.1)
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
@@ -120,7 +134,11 @@ class SignalSim:
         if self.CO_SIGNAL is True:
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
             signal = self.generateCOSignal(pressure, co_ppm) 
+=======
+            signal = self.generateCOSignal(pressure, co_ppm) * (1 + np.random.normal(-0.1, 0.1)) # add some variability to the signal power
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
             signal = self.generateCOSignal(pressure, co_ppm) * (1 + np.random.normal(-0.1, 0.1)) # add some variability to the signal power
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
@@ -189,6 +207,7 @@ def getSimulatedData(powers, freqs, pressures, meta, sim_co=True):
     constants = {
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
         'ROI_SIGMA': 1e6,
         'BASELINE_DEG': 3,
         'CO_SIGNAL': sim_co,
@@ -207,6 +226,8 @@ def getSimulatedData(powers, freqs, pressures, meta, sim_co=True):
         'A_p' : 0.21, # cm^2, area of photodetector,
         'PHI_D' : 3.56e-5 # sterradians, solid angle subtended by photodetector
 =======
+=======
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
     'ROI_SIGMA': 1e6,
@@ -230,6 +251,9 @@ def getSimulatedData(powers, freqs, pressures, meta, sim_co=True):
     'A_p' : 0.21, # cm^2, area of photodetector,
     'PHI_D' : 3.56e-5 # sterradians, solid angle subtended by photodetector
 <<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
+=======
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
@@ -255,6 +279,10 @@ def interpolatePressures(pressures, target_length, sweep_time):
     masked_time_axis = time_axis[~pressures_mask].astype(float)
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
 
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
@@ -293,6 +321,12 @@ if __name__ == "__main__":
         'SWEEP_TIME': float(meta['Sweep Time (ms)']),
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+        'CO_POWER': 1e-16,
+        'CO_BANDWIDTH_ATM': 3.5e9,
+        'ATM_PRESSURE': 1012.25,
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
         'CO_POWER': 1e-16,
         'CO_BANDWIDTH_ATM': 3.5e9,
@@ -310,7 +344,11 @@ if __name__ == "__main__":
         'A_eg' : 2.5e-6, # s^-1, Einstein A coefficient for the transition
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
         'nu' : 345.796e9, #Ghz, transition wavelength
+=======
+        'nu' : 345.796e9, #GhX, transition wavelength
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
         'nu' : 345.796e9, #GhX, transition wavelength
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
