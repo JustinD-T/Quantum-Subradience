@@ -1,5 +1,5 @@
-Run Timestamp: 2026-03-13T15:22:59
-Data Path: ExperimentLogs\ExperimentLog_20260313-140854.csv
+Run Timestamp: 2026-03-13T17:40:14
+Data Path: Experiments\Detection Tests\Setup Test I\CO Detect Only Preamp\COONLYPREAMP_pickled_data
 
 [Arguments]
 bin: True
@@ -8,7 +8,7 @@ clean: True
 defs: True
 deg: 3
 n_sub: 1
-path: ExperimentLogs\ExperimentLog_20260313-140854.csv
+path: Experiments\Detection Tests\Setup Test I\CO Detect Only Preamp\COONLYPREAMP_pickled_data
 plot_baseline: True
 plot_noise: True
 plot_signal: True
@@ -18,7 +18,8 @@ signal_sum: False
 sub: True
 
 [Testing Settings]
-SIM_DATA: False
+SIM_DATA: True
+SIM_SIGNAL: True
 OFFSET_CENTER: False
 TRUNCATE_SIGNAL: False
 BRUTE_FORCE_CLEAN: False
@@ -36,8 +37,8 @@ clean_n_sub: 1
 clean_sigma: 2500000.0
 
 [Data Summary]
-powers_shape: (55, 355)
+powers_shape: (55, 3998)
 freqs_shape: (55,)
-n_pressures: 448
+n_pressures: 5950
 center_frequency_Hz: +2.50000000000E+009
-experiment_description: All amplifiers, with 3b attenuator at inpute. CO TEST
+experiment_description: Bypassed externals, co test with only preamp

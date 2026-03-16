@@ -213,16 +213,16 @@ if __name__ == "__main__":
     powers, freqs, pressures, meta = loadData(args.path)
 
     # --- TESTING FEATURES ---
-    SIM_DATA = False
+    SIM_DATA = True
     CHANGE_CONCENTRATION = False
     OFFSET_CENTER = False
     TRUNCATE_SIGNAL = False
     BRUTE_FORCE_CLEAN = False
-    INTERPOLATE_PRESSURES = False
 
-    # --- TEST: Interpolate pressures to match number of measurements if needed
-    if INTERPOLATE_PRESSURES:
+    # Interpolate pressures to match number of measurements if needed
+    if np.isnan(pressures).any():
         from SignalSim import interpolatePressures
+        print("NaN values detected in pressures. Interpolating pressures to match number of measurements...")
         pressures = interpolatePressures(pressures, int(powers.shape[1]), float(meta.get('Sweep Time (ms)', 4)))
 
     # --- TEST: Change initial CO concentration in metadata for testing ---

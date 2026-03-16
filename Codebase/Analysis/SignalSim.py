@@ -32,9 +32,6 @@ class SignalSim:
         self.CENTER_FREQ = constants['CENTER_FREQ']
         self.SPAN = constants['SPAN']
         self.SWEEP_TIME = constants['SWEEP_TIME']
-        self.CO_POWER = constants['CO_POWER']
-        self.CO_BANDWIDTH_ATM = constants['CO_BANDWIDTH_ATM']
-        self.ATM_PRESSURE = constants['ATM_PRESSURE']
         self.NOISE_STD = constants['NOISE_STD']
         self.BASELINE_COEFFS = constants['BASELINE_COEFFS']
         self.GAIN = 10 ** (constants['GAIN'] / 10) # convert from dB to linear
@@ -50,14 +47,15 @@ class SignalSim:
 
     def COPower(self, co_ppm, pressure, CO_bandwidth):
         # Gives the expected power for a given concentration (per measurement)
-        n_e = (pressure / const.k * self.T) * (co_ppm / 1e6) * np.exp(-33.2 / self.T) / self.Q 
+        pressure_pa = pressure * 100 # convert from mbar to Pa
+        n_e = (pressure_pa / const.k * self.T) * (co_ppm / 1e6) * np.exp(-33.2 / self.T) / self.Q 
         I_v = (3 / (8 * np.pi * CO_bandwidth)) * n_e * const.h * self.nu * self.A_eg * self.L
         P_v = I_v * CO_bandwidth * self.PHI_D * self.A_p
         return P_v 
     
     def COBandwidth(self, pressure):
         # Gives the expected bandwidth at a given pressure
-        return 363e3 * (pressure / 0.1)
+        return 363e3 * (pressure / 0.1) 
     
     def COPowerAtFreq(self, co_ppm, pressure, freq):
         # Gives the power at a given frequency
@@ -92,7 +90,7 @@ class SignalSim:
     def generateMeasurement(self, pressure, co_ppm):
         
         if self.CO_SIGNAL is True:
-            signal = self.generateCOSignal(pressure, co_ppm) * (1 + np.random.normal(-0.1, 0.1)) # add some variability to the signal power
+            signal = self.generateCOSignal(pressure, co_ppm) 
         else:
             signal = np.zeros(self.N_PTS)
 
@@ -153,26 +151,23 @@ def compute_noise_std(powers, freqs, constants):
 def getSimulatedData(powers, freqs, pressures, meta, sim_co=True):
     
     constants = {
-    'ROI_SIGMA': 1e6,
-    'BASELINE_DEG': 3,
-    'CO_SIGNAL': sim_co,
-    'N_PTS': int(meta['Number of Points']),
-    'N_MEAS': powers.shape[1],
-    'CENTER_FREQ': float(meta['Center Frequency (Hz)']),
-    'SPAN': float(meta['Span']),
-    'SWEEP_TIME': float(meta['Sweep Time (ms)']),
-    'RBW' : float(meta['RBW (Hz)']),
-    'GAIN' : float(meta['Effective Gain at Input (Db)']),
-    'CO_POWER': 1e-16,
-    'CO_BANDWIDTH_ATM': 3.5e9,
-    'ATM_PRESSURE': 1012.25,
-    'Q' : 108, # partition function for CO at room temperature
-    'T' : 298, # K, room temperature
-    'A_eg' : 2.5e-6, # s^-1, Einstein A coefficient for the transition
-    'nu' : 345.796e9, #GhX, transition wavelength
-    'L' : 100, #cm, length of chamber,
-    'A_p' : 0.21, # cm^2, area of photodetector,
-    'PHI_D' : 3.56e-5 # sterradians, solid angle subtended by photodetector
+        'ROI_SIGMA': 1e6,
+        'BASELINE_DEG': 3,
+        'CO_SIGNAL': sim_co,
+        'N_PTS': int(meta['Number of Points']),
+        'N_MEAS': powers.shape[1],
+        'CENTER_FREQ': float(meta['Center Frequency (Hz)']),
+        'SPAN': float(meta['Span']),
+        'SWEEP_TIME': float(meta['Sweep Time (ms)']),
+        'RBW' : float(meta['RBW (Hz)']),
+        'GAIN' : float(meta['Effective Gain at Input (Db)']),
+        'Q' : 108, # partition function for CO at room temperature
+        'T' : 298, # K, room temperature
+        'A_eg' : 2.5e-6, # s^-1, Einstein A coefficient for the transition
+        'nu' : 345.796e9, #Ghz, transition wavelength
+        'L' : 100, #cm, length of chamber,
+        'A_p' : 0.21, # cm^2, area of photodetector,
+        'PHI_D' : 3.56e-5 # sterradians, solid angle subtended by photodetector
     }
 
     NOISE_STD, BASELINE_COEFFS = compute_noise_std(powers, freqs, constants)
@@ -193,7 +188,6 @@ def interpolatePressures(pressures, target_length, sweep_time):
     pressures_mask = np.isnan(pressures)
     masked_pressures = pressures[~pressures_mask].astype(float)
     masked_time_axis = time_axis[~pressures_mask].astype(float)
-
     coeffs = np.polyfit(masked_time_axis, masked_pressures, 2)
 
     return np.polyval(coeffs, time_axis)
@@ -224,15 +218,12 @@ if __name__ == "__main__":
         'CENTER_FREQ': float(meta['Center Frequency (Hz)']),
         'SPAN': float(meta['Span']),
         'SWEEP_TIME': float(meta['Sweep Time (ms)']),
-        'CO_POWER': 1e-16,
-        'CO_BANDWIDTH_ATM': 3.5e9,
-        'ATM_PRESSURE': 1012.25,
         'RBW' : float(meta['RBW (Hz)']),
         'GAIN' : float(meta['Effective Gain at Input (Db)']),
         'Q' : 108, # partition function for CO at room temperature
         'T' : 298, # K, room temperature
         'A_eg' : 2.5e-6, # s^-1, Einstein A coefficient for the transition
-        'nu' : 345.796e9, #GhX, transition wavelength
+        'nu' : 345.796e9, #Ghz, transition wavelength
         'L' : 100, #cm, length of chamber,
         'A_p' : 0.21, # cm^2, area of photodetector,
         'PHI_D' : 3.56e-5 # sterradians, solid angle subtended by photodetector
