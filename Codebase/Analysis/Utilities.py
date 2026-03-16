@@ -119,7 +119,11 @@ def binData(powers, spectral_axis, n=10):
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 def cleanData(powers, spectral_axis, freq_center, sigma, deg, n_sub):
+=======
+def cleanData(powers, spectral_axis, freq_center, sigma, deg, n_sub, cleaning_method='Single Itteration Variance Integral Clean'):
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
 def cleanData(powers, spectral_axis, freq_center, sigma, deg, n_sub, cleaning_method='Single Itteration Variance Integral Clean'):
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
@@ -152,6 +156,7 @@ def cleanData(powers, spectral_axis, freq_center, sigma, deg, n_sub, cleaning_me
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     # outlier_indices = varianceIncreaseOutlierDet(powers, spectral_axis, freq_center, sigma, deg=deg, n=n_sub)
 
     # --- METHOD 2 --- Outlier detection based on mean power deviations (commented out for now, can be used for comparison)
@@ -163,6 +168,8 @@ def cleanData(powers, spectral_axis, freq_center, sigma, deg, n_sub, cleaning_me
     # --- METHOD 4 --- Outlier detection based on true rolling variance (commented out for now, can be used for comparison)
     outlier_indices = trueRollingVarOutierDet(powers, spectral_axis, freq_center, sigma, deg=deg, n=n_sub)
 =======
+=======
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
@@ -187,6 +194,9 @@ def cleanData(powers, spectral_axis, freq_center, sigma, deg, n_sub, cleaning_me
         raise ValueError(f"Invalid cleaning method: {cleaning_method}")
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
+=======
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
