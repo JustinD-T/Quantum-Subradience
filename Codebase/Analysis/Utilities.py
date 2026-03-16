@@ -116,27 +116,7 @@ def binData(powers, spectral_axis, n=10):
 
     return new_powers, new_spectral_axis
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-def cleanData(powers, spectral_axis, freq_center, sigma, deg, n_sub):
-=======
 def cleanData(powers, spectral_axis, freq_center, sigma, deg, n_sub, cleaning_method='Single Itteration Variance Integral Clean'):
->>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
-=======
-def cleanData(powers, spectral_axis, freq_center, sigma, deg, n_sub, cleaning_method='Single Itteration Variance Integral Clean'):
->>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
-=======
-def cleanData(powers, spectral_axis, freq_center, sigma, deg, n_sub, cleaning_method='Single Itteration Variance Integral Clean'):
->>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
-=======
-def cleanData(powers, spectral_axis, freq_center, sigma, deg, n_sub, cleaning_method='Single Itteration Variance Integral Clean'):
->>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
-=======
-def cleanData(powers, spectral_axis, freq_center, sigma, deg, n_sub, cleaning_method='Single Itteration Variance Integral Clean'):
->>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
     """
     Cleans measurements by removing outlier measurements defined by a positive derivative of rolling standard deviation
 
@@ -156,32 +136,7 @@ def cleanData(powers, spectral_axis, freq_center, sigma, deg, n_sub, cleaning_me
     shot_noise_outliers = shotNoiseReject(powers)
     print(f"Identified {len(shot_noise_outliers)}/{powers.shape[1]} outliers based on shot noise thresholding.")
     
-    # --- METHOD 1 --- Outlier detection based on variance integral increases
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-    # outlier_indices = varianceIncreaseOutlierDet(powers, spectral_axis, freq_center, sigma, deg=deg, n=n_sub)
-
-    # --- METHOD 2 --- Outlier detection based on mean power deviations (commented out for now, can be used for comparison)
-    # outlier_indices = meanPowerOutlierDet(powers, spectral_axis, freq_center, sigma)
-
-    # --- METHOD 3 --- Outlier detection based on power deviations from median (commented out for now, can be used for comparison)
-    # outlier_indices = powerMedDeviationOutlierDet(powers, spectral_axis, sigma, freq_center, deg=deg, n_sub=n_sub, tresh=2)
-
-    # --- METHOD 4 --- Outlier detection based on true rolling variance (commented out for now, can be used for comparison)
-    outlier_indices = trueRollingVarOutierDet(powers, spectral_axis, freq_center, sigma, deg=deg, n=n_sub)
-=======
-=======
->>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
-=======
->>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
-=======
->>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
-=======
->>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
-    
+    # --- METHOD 1 --- Outlier detection based on variance integral increases    
     if cleaning_method == 'Single Itteration Variance Integral Clean':
         outlier_indices = varianceIncreaseOutlierDet(powers, spectral_axis, freq_center, sigma, deg=deg, n=n_sub)
 
@@ -199,19 +154,6 @@ def cleanData(powers, spectral_axis, freq_center, sigma, deg, n_sub, cleaning_me
 
     else:
         raise ValueError(f"Invalid cleaning method: {cleaning_method}")
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
-=======
->>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
-=======
->>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
-=======
->>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
-=======
->>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 
     outlier_indices = np.unique(np.concatenate((outlier_indices, shot_noise_outliers)))
 

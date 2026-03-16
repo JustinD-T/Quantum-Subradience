@@ -1,24 +1,6 @@
 *.psd filter=lfs diff=lfs merge=lfs -text
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
 *.gz filter=lfs diff=lfs merge=lfs -text
 *.csv.gz filter=lfs diff=lfs merge=lfs -text
->>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
-=======
-*.gz filter=lfs diff=lfs merge=lfs -text
-*.csv.gz filter=lfs diff=lfs merge=lfs -text
->>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
-=======
-*.gz filter=lfs diff=lfs merge=lfs -text
-*.csv.gz filter=lfs diff=lfs merge=lfs -text
->>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
-=======
-*.gz filter=lfs diff=lfs merge=lfs -text
-*.csv.gz filter=lfs diff=lfs merge=lfs -text
->>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 *.csv filter=lfs diff=lfs merge=lfs -text
 *.zip filter=lfs diff=lfs merge=lfs -text
 *.json filter=lfs diff=lfs merge=lfs -text
