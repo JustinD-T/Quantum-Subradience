@@ -219,6 +219,14 @@ if __name__ == "__main__":
     TRUNCATE_SIGNAL = False
     BRUTE_FORCE_CLEAN = False
     INTERPOLATE_PRESSURES = False
+    GRAPH_REJECTS = False
+    CLEANING_ROUTINES = {
+        1 : "Single Itteration Variance Integral Clean",
+        2 : "Mean Power Outlier Clean",
+        3 : "Median Power Outlier Clean",
+        4 : "True Rolling Variance Clean"
+    }
+    CLEANING_ROUTINE = 1
 
     # --- TEST: Interpolate pressures to match number of measurements if needed
     if INTERPOLATE_PRESSURES:
@@ -256,11 +264,11 @@ if __name__ == "__main__":
         if cleaning_itterations < 0:
             for i in range(cleaning_itterations):
                 print(f"Cleaning iteration {i+1}/{cleaning_itterations}...", end='\r')
-                powers, _ = cleanData(powers, freqs, float(meta['Center Frequency (Hz)']), args.sigma, deg=args.deg, n_sub=args.n_sub)
+                powers, _ = cleanData(powers, freqs, float(meta['Center Frequency (Hz)']), args.sigma, deg=args.deg, n_sub=args.n_sub, cleaning_method=CLEANING_ROUTINES.get(CLEANING_ROUTINE))
         else:
             while True:
                 print(f"Cleaning iteration {cleaning_itterations+1}...", end='\r')
-                powers, mask = cleanData(powers, freqs, float(meta['Center Frequency (Hz)']), args.sigma, deg=args.deg, n_sub=args.n_sub)
+                powers, mask = cleanData(powers, freqs, float(meta['Center Frequency (Hz)']), args.sigma, deg=args.deg, n_sub=args.n_sub, cleaning_method=CLEANING_ROUTINES.get(CLEANING_ROUTINE))
                 cleaning_itterations += 1
                 if mask.all():
                     break
@@ -268,8 +276,11 @@ if __name__ == "__main__":
     # --- Preprocessing ---
 
     if args.clean:
-        if not BRUTE_FORCE_CLEAN:
-            powers, _ = cleanData(powers, freqs, float(meta['Center Frequency (Hz)']), args.sigma, deg=args.deg, n_sub=args.n_sub)
+        if GRAPH_REJECTS:
+            _, mask = cleanData(powers, freqs, float(meta['Center Frequency (Hz)']), args.sigma, deg=args.deg, n_sub=args.n_sub, cleaning_method=CLEANING_ROUTINES.get(CLEANING_ROUTINE))
+            powers = powers[:, ~mask]
+        elif not BRUTE_FORCE_CLEAN:
+            powers, _ = cleanData(powers, freqs, float(meta['Center Frequency (Hz)']), args.sigma, deg=args.deg, n_sub=args.n_sub, cleaning_method=CLEANING_ROUTINES.get(CLEANING_ROUTINE))
 
     if args.sub:
         powers = subtractBaseline(powers, freqs, float(meta['Center Frequency (Hz)']), args.sigma, args.deg, args.n_sub)
@@ -318,6 +329,10 @@ if __name__ == "__main__":
             BFC_factor = locals().get('cleaning_itterations', 'N/A')
             lines.append(f"cleaning_itterations: {BFC_factor if BFC_factor > 0 else 'Until 0% Rejection Rate'}")
 
+        lines.append(f"INTERPOLATE_PRESSURES: {INTERPOLATE_PRESSURES}")
+
+        lines.append(f"GRAPH_REJECTS: {GRAPH_REJECTS}")
+
         lines.append("")
         lines.append("[Resolved Processing Settings]")
         lines.append(f"baseline_subtraction_enabled: {args.sub}")
@@ -335,7 +350,7 @@ if __name__ == "__main__":
             lines.append(f"clean_deg: {args.deg}")
             lines.append(f"clean_n_sub: {args.n_sub}")
             lines.append(f"clean_sigma: {args.sigma}")
-
+            lines.append(f"cleaning_method: {CLEANING_ROUTINES.get(CLEANING_ROUTINE)}")
         lines.append("")
         lines.append("[Data Summary]")
         lines.append(f"powers_shape: {powers.shape}")
