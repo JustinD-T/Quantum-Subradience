@@ -215,7 +215,11 @@ if __name__ == "__main__":
     # --- TESTING FEATURES ---
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     SIM_DATA = True
+=======
+    SIM_DATA = False
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
     SIM_DATA = False
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
@@ -228,12 +232,15 @@ if __name__ == "__main__":
     BRUTE_FORCE_CLEAN = False
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 
     # Interpolate pressures to match number of measurements if needed
     if np.isnan(pressures).any():
         from SignalSim import interpolatePressures
         print("NaN values detected in pressures. Interpolating pressures to match number of measurements...")
 =======
+=======
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
     INTERPOLATE_PRESSURES = False
@@ -250,6 +257,9 @@ if __name__ == "__main__":
     if INTERPOLATE_PRESSURES:
         from SignalSim import interpolatePressures
 <<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
+=======
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
@@ -288,6 +298,7 @@ if __name__ == "__main__":
                 print(f"Cleaning iteration {i+1}/{cleaning_itterations}...", end='\r')
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
                 powers, _ = cleanData(powers, freqs, float(meta['Center Frequency (Hz)']), args.sigma, deg=args.deg, n_sub=args.n_sub)
         else:
             while True:
@@ -296,12 +307,17 @@ if __name__ == "__main__":
 =======
 =======
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
+=======
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
                 powers, _ = cleanData(powers, freqs, float(meta['Center Frequency (Hz)']), args.sigma, deg=args.deg, n_sub=args.n_sub, cleaning_method=CLEANING_ROUTINES.get(CLEANING_ROUTINE))
         else:
             while True:
                 print(f"Cleaning iteration {cleaning_itterations+1}...", end='\r')
                 powers, mask = cleanData(powers, freqs, float(meta['Center Frequency (Hz)']), args.sigma, deg=args.deg, n_sub=args.n_sub, cleaning_method=CLEANING_ROUTINES.get(CLEANING_ROUTINE))
 <<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
+=======
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
@@ -314,9 +330,12 @@ if __name__ == "__main__":
     if args.clean:
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
         if not BRUTE_FORCE_CLEAN:
             powers, _ = cleanData(powers, freqs, float(meta['Center Frequency (Hz)']), args.sigma, deg=args.deg, n_sub=args.n_sub)
 =======
+=======
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
         if GRAPH_REJECTS:
@@ -325,6 +344,9 @@ if __name__ == "__main__":
         elif not BRUTE_FORCE_CLEAN:
             powers, _ = cleanData(powers, freqs, float(meta['Center Frequency (Hz)']), args.sigma, deg=args.deg, n_sub=args.n_sub, cleaning_method=CLEANING_ROUTINES.get(CLEANING_ROUTINE))
 <<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
+=======
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
@@ -378,7 +400,10 @@ if __name__ == "__main__":
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
         lines.append(f"INTERPOLATE_PRESSURES: {INTERPOLATE_PRESSURES}")
@@ -386,6 +411,9 @@ if __name__ == "__main__":
         lines.append(f"GRAPH_REJECTS: {GRAPH_REJECTS}")
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
+=======
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
@@ -408,7 +436,11 @@ if __name__ == "__main__":
             lines.append(f"clean_sigma: {args.sigma}")
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 
+=======
+            lines.append(f"cleaning_method: {CLEANING_ROUTINES.get(CLEANING_ROUTINE)}")
+>>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
 =======
             lines.append(f"cleaning_method: {CLEANING_ROUTINES.get(CLEANING_ROUTINE)}")
 >>>>>>> c8b7f361a115e60e0c68b6e131050071c911656d
