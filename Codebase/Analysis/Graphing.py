@@ -1,4 +1,5 @@
 import argparse
+import os
 import time
 from pathlib import Path
 from datetime import datetime
@@ -88,7 +89,7 @@ def plotNoiseVsTimeAndMeasurement(powers, spectral_axis, meta, sigma, save_fig=F
         plt.show()
     plt.close()
 
-def plotSignal(powers, spectral_axis, title, sigma, central_freq, init_CO_level, sum_data=True, save_fig=False):
+def plotSignal(powers, spectral_axis, title, sigma, central_freq, init_CO_level, end_pressure, sum_data=True, save_fig=False, path=None):
 
     if TEST_BOOL:
         start = time.time()
@@ -114,7 +115,7 @@ def plotSignal(powers, spectral_axis, title, sigma, central_freq, init_CO_level,
 
     ax.set_xlabel('Frequency (MHz)', color='white')
     ax.set_ylabel('Power (W)', color='white')
-    ax.set_title(f'{title}\nInitial CO: {init_CO_level}', color='white')
+    ax.set_title(f'{title}\nInitial CO: {init_CO_level}\nFinal Pressure: {end_pressure} mbar', color='white')
     
     for spine in ax.spines.values(): spine.set_color('white')
     ax.tick_params(colors='white')
@@ -126,7 +127,10 @@ def plotSignal(powers, spectral_axis, title, sigma, central_freq, init_CO_level,
     
     fig.tight_layout()
     if save_fig:
-        plt.savefig(r'Codebase\Analysis\Figure Dump\signal_plot.png', facecolor='black', dpi=300)
+        if path:
+            plt.savefig(path, facecolor='black', dpi=300)
+        else:
+            plt.savefig(r'Codebase\Analysis\Figure Dump\signal_plot.png', facecolor='black', dpi=300)
         plt.close()
     else:
         plt.show()
@@ -208,7 +212,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.defs:
         args.save_fig, args.sub, args.bin = True, True, True
-        args.plot_noise, args.plot_signal, args.signal_sum, args.clean = True, True, False, True
+        args.plot_noise, args.plot_signal, args.signal_sum, args.clean = True, True, False, False
         args.plot_baseline = True
     powers, freqs, pressures, meta = loadData(args.path)
 
@@ -220,6 +224,7 @@ if __name__ == "__main__":
     BRUTE_FORCE_CLEAN = False
     INTERPOLATE_PRESSURES = False
     GRAPH_REJECTS = False
+    PLOT_EVOLUTION = True
     CLEANING_ROUTINES = {
         1 : "Single Itteration Variance Integral Clean",
         2 : "Mean Power Outlier Clean",
@@ -227,6 +232,7 @@ if __name__ == "__main__":
         4 : "True Rolling Variance Clean"
     }
     CLEANING_ROUTINE = 1
+    
 
     # Interpolate pressures to match number of measurements if needed
     if np.isnan(pressures).any():
@@ -294,13 +300,55 @@ if __name__ == "__main__":
     if args.bin:
         powers, freqs = binData(powers, freqs, n=args.bin_factor)
 
+    # --- TEST FEATURE: Plot frequency evolution over measurements ---
+    if PLOT_EVOLUTION:
+        import glob
+        from PIL import Image
+        import shutil
+        
+        interval = input('TEST: Plot signal evolution over rolling discrete intervals, n: ')
+        ani_delay = input('TEST: Input animation delay between frames in milliseconds: ')
+        incl_imgs = input('TEST: Include Animation Only? (y/n): ').lower() == 'y'
+
+        os.makedirs(r'Codebase\Analysis\Figure Dump\Evolution Plots', exist_ok=True)
+        if os.path.exists(r'Codebase\Analysis\Figure Dump\Evolution Plots'):
+            shutil.rmtree(r'Codebase\Analysis\Figure Dump\Evolution Plots')
+        os.makedirs(r'Codebase\Analysis\Figure Dump\Evolution Plots', exist_ok=True)
+        for j in np.arange(0, powers.shape[1], int(interval)):
+            plotSignal(powers[:, :j+int(interval)], freqs, f"{meta['Experiment Description']} - First {j+int(interval)} Measurements", 
+                       args.sigma, float(meta['Center Frequency (Hz)']), meta['initial_CO_concentration (ppm)'], 
+                       sum_data=args.signal_sum, end_pressure=np.round(pressures[j+int(interval)-1], 4) ,save_fig=args.save_fig, 
+                       path=rf'Codebase\Analysis\Figure Dump\Evolution Plots\evolution_plot_{j+int(interval)}.png')
+        # Take in saved plots and produce an animation with a delay to 1 second between frames
+        # Load all evolution plot images
+        image_files = sorted(glob.glob(r'Codebase\Analysis\Figure Dump\Evolution Plots\evolution_plot_*.png'), 
+                             key=lambda x: int(x.split('_')[-1].split('.')[0]))
+        images = [Image.open(img) for img in image_files]
+
+        # Save as animated GIF with 1 second delay between frames
+        if images:
+            images[0].save(
+                r'Codebase\Analysis\Figure Dump\Evolution Plots\evolution_animation.gif',
+                save_all=True,
+                append_images=images[1:],
+                duration=int(ani_delay),
+                loop=0
+            )
+            print("Animation saved as evolution_animation.gif")
+        
+        if not incl_imgs:
+            # Remove individual images after creating animation
+            for img_file in image_files:
+                os.remove(img_file)
+            print("Individual evolution plot images removed.")
+
     # --- Plotting ---
 
     if args.plot_noise:
         plotNoiseVsTimeAndMeasurement(powers, freqs, meta, args.sigma, args.save_fig)
     
     if args.plot_signal:
-        plotSignal(powers, freqs, meta['Experiment Description'], args.sigma, float(meta['Center Frequency (Hz)']), meta['initial_CO_concentration (ppm)'], args.signal_sum, args.save_fig)
+        plotSignal(powers, freqs, meta['Experiment Description'], args.sigma, float(meta['Center Frequency (Hz)']), meta['initial_CO_concentration (ppm)'], end_pressure=np.round(pressures[-1], 4), sum_data=args.signal_sum, save_fig=args.save_fig)
     
     if args.plot_signal or args.plot_noise or args.plot_baseline:
         out_dir = Path(r"Codebase\Analysis\Figure Dump")
