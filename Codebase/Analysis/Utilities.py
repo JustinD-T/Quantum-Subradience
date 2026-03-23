@@ -133,29 +133,29 @@ def cleanData(powers, spectral_axis, freq_center, sigma, deg, n_sub, cleaning_me
     if TEST_BOOL:
         start = time.time() 
 
-    shot_noise_outliers = shotNoiseReject(powers)
-    print(f"Identified {len(shot_noise_outliers)}/{powers.shape[1]} outliers based on shot noise thresholding.")
+    # shot_noise_outliers = shotNoiseReject(powers)
+    # print(f"Identified {len(shot_noise_outliers)}/{powers.shape[1]} outliers based on shot noise thresholding.")
     
     # --- METHOD 1 --- Outlier detection based on variance integral increases    
     if cleaning_method == 'Single Itteration Variance Integral Clean':
         outlier_indices = varianceIncreaseOutlierDet(powers, spectral_axis, freq_center, sigma, deg=deg, n=n_sub)
 
     # --- METHOD 2 --- Outlier detection based on mean power deviations (commented out for now, can be used for comparison)
-    if cleaning_method == 'Mean Power Outlier Clean':
+    elif cleaning_method == 'Mean Power Outlier Clean':
         outlier_indices = meanPowerOutlierDet(powers, spectral_axis, freq_center, sigma)
 
     # --- METHOD 3 --- Outlier detection based on power deviations from median (commented out for now, can be used for comparison)
-    if cleaning_method == 'Median Power Outlier Clean':
+    elif cleaning_method == 'Median Power Outlier Clean':
         outlier_indices = powerMedDeviationOutlierDet(powers, spectral_axis, sigma, freq_center, deg=deg, n_sub=n_sub, tresh=2)
 
     # --- METHOD 4 --- Outlier detection based on true rolling variance (commented out for now, can be used for comparison)
-    if cleaning_method == 'True Rolling Variance Clean':
+    elif cleaning_method == 'True Rolling Variance Clean':
         outlier_indices = trueRollingVarOutierDet(powers, spectral_axis, freq_center, sigma, deg=deg, n=n_sub)
 
     else:
         raise ValueError(f"Invalid cleaning method: {cleaning_method}")
 
-    outlier_indices = np.unique(np.concatenate((outlier_indices, shot_noise_outliers)))
+    # outlier_indices = np.unique(np.concatenate((outlier_indices, shot_noise_outliers)))
 
     mask = np.ones(powers.shape[1], dtype=bool)
     mask[outlier_indices] = False

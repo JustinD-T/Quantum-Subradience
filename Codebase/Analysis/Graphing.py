@@ -93,6 +93,8 @@ def plotSignal(powers, spectral_axis, title, sigma, central_freq, init_CO_level,
     if TEST_BOOL:
         start = time.time()
 
+    powers[(spectral_axis < -sigma) | (spectral_axis > sigma), :] = np.mean(powers.mean(axis=0), axis=0)
+
     signal = powers.sum(axis=1) if sum_data else powers.mean(axis=1)
 
     # normalize spectral axis
@@ -216,7 +218,7 @@ if __name__ == "__main__":
     SIM_DATA = False
     CHANGE_CONCENTRATION = False
     OFFSET_CENTER = False
-    TRUNCATE_SIGNAL = False
+    TRUNCATE_SIGNAL = True
     BRUTE_FORCE_CLEAN = False
     INTERPOLATE_PRESSURES = False
     GRAPH_REJECTS = False
@@ -256,7 +258,7 @@ if __name__ == "__main__":
 
     if TRUNCATE_SIGNAL:
         # --- TEST: Truncate to the first n measurements
-        n = input('TEST: Input Data Truncation End Index: ')
+        n = input(f'TEST: Total measurement length: {powers.shape[1]}. Input Data Truncation End Index: ')
         powers = truncData(powers, n=int(n))
 
     if args.plot_baseline:

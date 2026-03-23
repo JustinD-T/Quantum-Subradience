@@ -4,6 +4,9 @@ from VisualInterface import VisualInterface
 
 from PyQt6 import QtWidgets, QtCore, QtGui
 
+from queue import Queue, Empty
+from threading import Thread
+
 from concurrent.futures import ThreadPoolExecutor
 import os
 import csv
@@ -161,126 +164,151 @@ class CommunicationMaster():
         print("Logging stopped.")
 
     def start_logging(self, interval):
-            start_time = time.time()
-            cycle_ct = 0
-            prev_elapsed_time = None
-            self.master_callback("message", f"Logging started. Writing to {self.logging_path}")
-            curr_mem = os.path.getsize(self.logging_path)
-            try:
-                # Keep CSV file open for the duration of the logging session
-                with open(self.logging_path, mode='a', newline='') as log_file:
-                    csv_writer = csv.writer(log_file)
+        self.master_callback("message", f"Logging started. Writing to {self.logging_path}")
+        
+        # 1. Initialize Thread-Safe Queue and Background Writer
+        # This prevents Disk I/O from pausing your measurement timing
+        self.data_queue = Queue()
+        self.writer_stop_event = threading.Event()
+        
+        # Start the background worker
+        writer_thread = threading.Thread(
+            target=self._background_csv_writer, 
+            args=(self.logging_path, self.non_freq_fields),
+            daemon=True
+        )
+        writer_thread.start()
 
-                    while self.logging_active:
-                        current_loop_start = time.time()
-                        timestamp = time.strftime('%Y-%m-%dT%H:%M:%S', time.localtime(current_loop_start))
-                        elapsed_time = current_loop_start - start_time
+        start_time = time.time()
+        cycle_ct = 0
+        prev_elapsed_time = None
+        curr_mem = os.path.getsize(self.logging_path)
 
-                        data = {'Timestamp': timestamp, 'Elapsed Time (s)': elapsed_time}
-                        cycle_time = elapsed_time - prev_elapsed_time if prev_elapsed_time is not None else 0
-                        data.update({'Cycle Count': cycle_ct, 'Absolute Cycle Time (ms)': cycle_time * 1000})
+        try:
+            while self.logging_active:
+                current_loop_start = time.time()
+                elapsed_time = current_loop_start - start_time
+                
+                # --- PHASE 1: Concurrent Hardware Read ---
+                try:
+                    futures = {}
+                    if self.pressure_enabled:
+                        futures['p'] = self.executor.submit(self.pressure_sensor.get_reading)
+                    if self.spectrum_enabled:
+                        futures['s'] = self.executor.submit(self.spectrum_analyzer.get_amplitudes)
+                    
+                    p_res = futures['p'].result() if 'p' in futures else None
+                    s_res = futures['s'].result() if 's' in futures else None
+                except (RuntimeError, KeyError):
+                    break
 
-                        
-                        # 1. Concurrent Hardware Read
-                        reading_trigger_time = time.time()
-                        try:
-                            futures = {}
-                            if self.pressure_enabled:
-                                futures['p'] = self.executor.submit(self.pressure_sensor.get_reading)
-                            if self.spectrum_enabled:
-                                futures['s'] = self.executor.submit(self.spectrum_analyzer.get_amplitudes)
-                            
-                            # Wait for results
-                            p_res = futures['p'].result() if 'p' in futures else None
-                            s_res = futures['s'].result() if 's' in futures else None
-                        except (RuntimeError, KeyError):
-                            # Triggered if executor is shutting down
-                            break
+                # --- PHASE 2: Logic & Math (Keep this lean) ---
+                cycle_time = elapsed_time - prev_elapsed_time if prev_elapsed_time is not None else 0
+                
+                p_delta = (p_res['timestamp'] - current_loop_start) * 1000 if p_res else 0
+                s_delta = (s_res['Timestamp'] - current_loop_start) * 1000 if s_res else 0
+                hw_wait = max(p_delta, s_delta)
+                
+                eff_int = (self.spec_sweep_time / cycle_time) if (s_res and cycle_time > 0) else 1.0
 
-                        # 2. Process Pressure Data
-                        if p_res:
-                            p_delta = (p_res['timestamp'] - reading_trigger_time) * 1000
-                            data.update({
-                                'Pressure': p_res['pressure'],
-                                'Pressure_Unit': p_res['unit']
-                            })
-                        else:
-                            p_delta = 0
+                # --- PHASE 3: Offload to Background Writer ---
+                # We pass the raw data to the queue. 
+                # The 6-second delay usually happens during string formatting/writing.
+                log_entry = {
+                    'timestamp': time.strftime('%Y-%m-%dT%H:%M:%S', time.localtime(current_loop_start)),
+                    'elapsed': elapsed_time,
+                    'cycle_ct': cycle_ct,
+                    'cycle_time': cycle_time,
+                    'p_res': p_res,
+                    's_res': s_res,
+                    'eff_int': eff_int,
+                    'hw_wait': hw_wait
+                }
+                self.data_queue.put(log_entry)
 
-                        # 3. Process Spectrum Data
-                        if s_res:
-                            s_delta = (s_res['Timestamp'] - reading_trigger_time) * 1000
-                        else:
-                            s_delta = 0
-                        
-                        # hw_wait is the duration of the slowest instrument response
-                        hw_wait = max(p_delta, s_delta) 
-                        if s_res:
-                            cycle_temporal_effecientcy = (self.spec_sweep_time / cycle_time if cycle_time != 0 else 1)
-                            data.update({'Effective Integration (%)': cycle_temporal_effecientcy})
-                        data.update({'Instrumental Cycle Time (ms)': hw_wait})
+                # --- PHASE 4: GUI Update (Throttled) ---
+                # Only update GUI if enabled and on your cadence
+                if self.visualization_enabled and (cycle_ct % self.vis_update_cadence == 0):
+                    gui_data = {
+                        'amplitudes': s_res['Amplitudes'] if s_res else None,
+                        'pressure': p_res['pressure'] if p_res else 0,
+                        'elapsed_time': elapsed_time,
+                        'file_size_mb': curr_mem / (1024**2),
+                        'gb_hr': (curr_mem / (1e9)) / (elapsed_time / 3600) if elapsed_time > 0 else 0,
+                        'cadence': (cycle_ct + 1) / elapsed_time if elapsed_time > 0 else 0,
+                        'cycle': cycle_ct,
+                        'cycle_time_ms': cycle_time * 1000,
+                        'instrumental_time_ms': hw_wait,
+                        'integration_efficiency': eff_int * 100
+                    }
+                    self.gui.data_received.emit(gui_data)
 
-                        # 4. Prepare and Write CSV Row
-                        if self.spectrum_enabled:
-                            sorted_data = [data.get(field, '') for field in self.non_freq_fields]
-                        if s_res:
-                            sorted_data.extend(s_res['Amplitudes'])
+                # Update loop state
+                prev_elapsed_time = elapsed_time
+                cycle_ct += 1
 
-                        if self.spectrum_enabled:
-                            csv_writer.writerow(sorted_data)
+                # --- PHASE 5: Intelligent Sleep ---
+                work_duration = time.time() - current_loop_start
+                sleep_time = max(0, interval - work_duration)
+                if sleep_time > 0:
+                    time.sleep(sleep_time)
 
-                            # Update current memory usage
-                            curr_mem += len(",".join(map(str, sorted_data)).encode('utf-8'))
+        except Exception as e:
+            self.master_callback("error", f"Fatal error in logging loop: {e}")
+        finally:
+            self.logging_active = False
+            self.writer_stop_event.set() # Tell background thread to finish up
+            self.executor.shutdown(wait=False)
 
-                        # Safety: Flush to OS every loop, Sync to Physical Disk every 50
+    def _background_csv_writer(self, file_path, fields):
+        """
+        Dedicated method to handle string conversion and disk writes.
+        This frees the main loop to keep the analyzer running.
+        """
+        with open(file_path, mode='a', newline='') as log_file:
+            csv_writer = csv.writer(log_file)
+            
+            while not self.writer_stop_event.is_set() or not self.data_queue.empty():
+                try:
+                    # Wait for data from the main loop
+                    item = self.data_queue.get(timeout=1.0)
+                    
+                    # Construct the CSV row
+                    # This logic replicates your specific 'sorted_data' format
+                    data_map = {
+                        'Timestamp': item['timestamp'],
+                        'Elapsed Time (s)': item['elapsed'],
+                        'Cycle Count': item['cycle_ct'],
+                        'Absolute Cycle Time (ms)': item['cycle_time'] * 1000,
+                        'Instrumental Cycle Time (ms)': item['hw_wait'],
+                        'Effective Integration (%)': item['eff_int']
+                    }
+                    
+                    if item['p_res']:
+                        data_map.update({
+                            'Pressure': item['p_res']['pressure'],
+                            'Pressure_Unit': item['p_res']['unit']
+                        })
+
+                    # Extract standard fields
+                    row = [data_map.get(f, '') for f in fields]
+                    
+                    # Append spectrum amplitudes if present
+                    if item['s_res']:
+                        row.extend(item['s_res']['Amplitudes'])
+                    
+                    # Perform the heavy write operation
+                    csv_writer.writerow(row)
+                    
+                    # Periodic flush for safety
+                    if item['cycle_ct'] % 50 == 0:
                         log_file.flush()
-                        if cycle_ct % 50 == 0:
-                            os.fsync(log_file.fileno())
-                            curr_mem = os.fstat(log_file.fileno()).st_size
-                            
+                        os.fsync(log_file.fileno())
 
-                        # 5. Timing Calculations
-                        loop_end_time = time.time()
-                        
-                        # systematic_time is the overhead of Python/Writing/Formatting
-                        systematic_time = ((loop_end_time - current_loop_start) - hw_wait / 1000) * 1000
-                        
-                        if self.visualization_enabled:
-                            print(f"[Cycle {cycle_ct}] HW Wait: {hw_wait:.3f}ms | Overhead: {systematic_time:.3f}ms | Total Est. Memory: {curr_mem / (1000**3):.8f}Gb ; {(curr_mem / (1000**3)) / ((loop_end_time - start_time) / 3600):.4f}Gb/hr | Cadence: {cycle_ct / (loop_end_time - start_time):.4f} Hz | Eff. Integration {(cycle_temporal_effecientcy*100):.2f}%")
-
-                        cycle_ct += 1
-
-                        if cycle_ct % self.vis_update_cadence == 0 and self.visualization_enabled:
-                            # Prepare data package for the GUI
-                            gui_data = {
-                                'amplitudes': s_res['Amplitudes'] if s_res else None,
-                                'pressure': p_res['pressure'] if p_res else 0,
-                                'elapsed_time': elapsed_time,
-                                'file_size_mb': curr_mem / (1024**2),
-                                'gb_hr': (curr_mem / (1000**3)) / (elapsed_time / 3600) if elapsed_time > 0 else 0,
-                                'cadence': cycle_ct / elapsed_time if elapsed_time > 0 else 0,
-                                'cycle': cycle_ct,
-                                'cycle_time_ms': cycle_time*1000,
-                                'instrumental_time_ms': hw_wait,
-                                'integration_efficiency': cycle_temporal_effecientcy * 100 if s_res else 0
-                            }
-                            # Emit the signal (Thread-safe)
-                            self.gui.data_received.emit(gui_data)
-
-                        prev_elapsed_time = elapsed_time
-
-                        # 6. Intelligent Sleep (Subtracts work time from interval)
-                        work_duration = time.time() - current_loop_start
-                        sleep_time = max(0, interval - work_duration)
-                        if sleep_time > 0:
-                            time.sleep(sleep_time)
-
-            except Exception as e:
-                self.master_callback("error", f"Fatal error in logging loop: {e}")
-            finally:
-                self.logging_active = False
-                self.executor.shutdown(wait=False)
-
+                    self.data_queue.task_done()
+                except Empty:
+                    continue
+                
     def pressure_callback(self, log_type, message):
         if log_type == "message" and self.verbose:
             print(f"[Pressure Sensor] {message}")
