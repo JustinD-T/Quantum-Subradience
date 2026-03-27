@@ -4,6 +4,7 @@ from VisualInterface import VisualInterface
 
 from PyQt6 import QtWidgets, QtCore, QtGui
 
+
 from queue import Queue, Empty
 from threading import Thread
 
@@ -92,7 +93,15 @@ class CommunicationMaster():
                     self.fields.extend([f"{freq} Hz" for freq in spectral_axis])
                     
                 # Get CO Concerntration if applicable
-                init_CO_conc = input("Enter initial CO Concentration in ppm (or leave blank to skip): ")
+                init_CO_conc = 'N/A'
+                init_ml = 'N/A'
+                CO_bool = input('CO or Acetonitrile? (C/A): ')
+                if CO_bool.lower() == 'c':
+                    CO = True
+                    init_CO_conc = input("Enter initial CO Concentration in ppm (or leave blank to skip): ")
+                if CO_bool.lower() == 'a':
+                    ACETONITRILE = True
+                    init_ml = input("Enter Acetonitrile Volume in mL (or leave blank to skip): ")
                 input_gain = input("Enter Effective Gain at Input in dB (or leave blank to skip): ")
                 
                 # Header info
@@ -107,6 +116,7 @@ class CommunicationMaster():
 #    visual_update_cycle_interval: {self.vis_update_cadence}
 #    Effective Gain at Input (Db) : {input_gain if input_gain != '' else 'N/A'}
 #    initial_CO_concentration (ppm): {init_CO_conc if init_CO_conc != '' else 'N/A'}
+#    initial_Acetonitrile_volume (mL): {init_ml if init_ml != '' else 'N/A'}
 # Serial Configuration ({'ENABLED' if self.pressure_enabled else 'DISABLED'}):
 #    Port: {self.config['pressure_sensor']['serial'].get('port', 'COM1')}
 #    Baudrate: {self.config['pressure_sensor']['serial'].get('baudrate', 9600)}

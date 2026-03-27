@@ -457,3 +457,6 @@ def shotNoiseReject(powers):
     outlier_indices = np.where(np.any(powers > up_bound, axis=0))[0]
 
     return outlier_indices
+
+def gasConcentration(gas_vp, gas_vol, gas_density, liquid_density, gas_M):
+    pass    

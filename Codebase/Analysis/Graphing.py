@@ -89,12 +89,10 @@ def plotNoiseVsTimeAndMeasurement(powers, spectral_axis, meta, sigma, save_fig=F
         plt.show()
     plt.close()
 
-def plotSignal(powers, spectral_axis, title, sigma, central_freq, init_CO_level, end_pressure, sum_data=True, save_fig=False, path=None):
+def plotSignal(powers, spectral_axis, title, sigma, central_freq, end_pressure, sum_data=True, save_fig=False, path=None):
 
     if TEST_BOOL:
         start = time.time()
-
-    powers[(spectral_axis < -sigma) | (spectral_axis > sigma), :] = np.mean(powers.mean(axis=0), axis=0)
 
     signal = powers.sum(axis=1) if sum_data else powers.mean(axis=1)
 
@@ -117,7 +115,7 @@ def plotSignal(powers, spectral_axis, title, sigma, central_freq, init_CO_level,
 
     ax.set_xlabel('Frequency (MHz)', color='white')
     ax.set_ylabel('Power (W)', color='white')
-    ax.set_title(f'{title}\nInitial CO: {init_CO_level}\nFinal Pressure: {end_pressure} mbar', color='white')
+    ax.set_title(f'{title}\nFinal Pressure: {end_pressure} mbar', color='white')
     
     for spine in ax.spines.values(): spine.set_color('white')
     ax.tick_params(colors='white')
@@ -200,10 +198,10 @@ if __name__ == "__main__":
     parser.add_argument('--sigma', type=float, default=2.5e6)
     parser.add_argument('--save_fig', action='store_true')
     parser.add_argument('--deg', type=int, default=3)
-    parser.add_argument('--n_sub', type=int, default=1)
+    parser.add_argument('--n_sub', type=int, default=5)
     parser.add_argument('--sub', action='store_true')
     parser.add_argument('--bin', action='store_true')
-    parser.add_argument('--bin_factor', type=int, default=120)
+    parser.add_argument('--bin_factor', type=int, default=15)
     parser.add_argument('--plot_noise', action='store_true')
     parser.add_argument('--plot_signal', action='store_true')
     parser.add_argument('--signal_sum', action='store_true')
@@ -223,10 +221,12 @@ if __name__ == "__main__":
     CHANGE_CONCENTRATION = False
     OFFSET_CENTER = False
     TRUNCATE_SIGNAL = True
+    PLOT_PRESSURES = True
     BRUTE_FORCE_CLEAN = False
     INTERPOLATE_PRESSURES = False
     GRAPH_REJECTS = False
-    PLOT_EVOLUTION = True
+    PLOT_EVOLUTION = False
+    TRUNCATE_ENDS = True
     CLEANING_ROUTINES = {
         1 : "Single Itteration Variance Integral Clean",
         2 : "Mean Power Outlier Clean",
@@ -235,6 +235,12 @@ if __name__ == "__main__":
     }
     CLEANING_ROUTINE = 1
     
+    # --- TEST: Truncate ends of spectrum to remove potential artifacts
+    if TRUNCATE_ENDS:
+        n_trunc =  float(input('SPECTRUM TRUNACTION TEST: Input MHz on Each Side to Remove: ')) * 1e6
+        freqs_mask = (freqs >= freqs.min() + n_trunc) & (freqs <= freqs.max() - n_trunc)
+        freqs = freqs[freqs_mask]
+        powers = powers[freqs_mask, :]
 
     # Interpolate pressures to match number of measurements if needed
     if np.isnan(pressures).any():
@@ -250,6 +256,25 @@ if __name__ == "__main__":
     if CHANGE_CONCENTRATION:
         new_conc = input('TEST: Input new initial CO concentration in ppm for testing: ')
         meta['initial_CO_concentration (ppm)'] = new_conc
+
+    # --- TEST: Plot pressures over time to verify interpolation if needed
+    if PLOT_PRESSURES:
+        import matplotlib.pyplot as plt
+        sweep_time = float(meta.get('Sweep Time (ms)', 0))  
+        time_axis = np.arange(len(pressures)) * sweep_time
+        plt.figure(figsize=(10, 5))
+        plt.plot(time_axis, pressures, marker='o')
+        plt.xlabel('Time (ms)')
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.ylabel('Pressure (mbar)')
+        plt.title('Pressure vs Time')
+        plt.grid()
+        if args.save_fig:
+            plt.savefig(r'Codebase\Analysis\Figure Dump\pressure_vs_time.png', dpi=300)
+            plt.close()
+        else:
+            plt.show()
 
     # --- TEST: Generate synthetic Gaussian noise for testing
     if SIM_DATA:
@@ -316,9 +341,9 @@ if __name__ == "__main__":
         if os.path.exists(r'Codebase\Analysis\Figure Dump\Evolution Plots'):
             shutil.rmtree(r'Codebase\Analysis\Figure Dump\Evolution Plots')
         os.makedirs(r'Codebase\Analysis\Figure Dump\Evolution Plots', exist_ok=True)
-        for j in np.arange(0, powers.shape[1], int(interval)):
+        for j in np.arange(0, powers.shape[1], int(interval))[:-1]:
             plotSignal(powers[:, :j+int(interval)], freqs, f"{meta['Experiment Description']} - First {j+int(interval)} Measurements", 
-                       args.sigma, float(meta['Center Frequency (Hz)']), meta['initial_CO_concentration (ppm)'], 
+                       args.sigma, float(meta['Center Frequency (Hz)']),
                        sum_data=args.signal_sum, end_pressure=np.round(pressures[j+int(interval)-1], 4) ,save_fig=args.save_fig, 
                        path=rf'Codebase\Analysis\Figure Dump\Evolution Plots\evolution_plot_{j+int(interval)}.png')
         # Take in saved plots and produce an animation with a delay to 1 second between frames
@@ -350,7 +375,7 @@ if __name__ == "__main__":
         plotNoiseVsTimeAndMeasurement(powers, freqs, meta, args.sigma, args.save_fig)
     
     if args.plot_signal:
-        plotSignal(powers, freqs, meta['Experiment Description'], args.sigma, float(meta['Center Frequency (Hz)']), meta['initial_CO_concentration (ppm)'], end_pressure=np.round(pressures[-1], 4), sum_data=args.signal_sum, save_fig=args.save_fig)
+        plotSignal(powers, freqs, meta['Experiment Description'], args.sigma, float(meta['Center Frequency (Hz)']), end_pressure=np.round(pressures[-1], 4), sum_data=args.signal_sum, save_fig=args.save_fig)
     
     if args.plot_signal or args.plot_noise or args.plot_baseline:
         out_dir = Path(r"Codebase\Analysis\Figure Dump")
